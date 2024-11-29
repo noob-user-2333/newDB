@@ -30,6 +30,9 @@ namespace iedb {
         minus,
         star,
         slash,
+        more_equal,
+        less_equal,
+        not_equal,
         more,
         less,
         bang,
@@ -55,9 +58,13 @@ namespace iedb {
         const token_type type;
         const uint32 offset;
         const uint32 len;
-        token(token_type type,uint32 offset,uint32 len):type(type),offset(offset),len(len){}
+        const char* sql;
+        token * brother;
+        token * child;
+        token(token_type type,uint32 offset,uint32 len,const char* sql):type(type),offset(offset),len(len),sql(sql),brother(nullptr),child(nullptr){}
+        void print();
+        static std::unique_ptr<std::vector<token>> lexer(const char * sql);
     };
-
 
 
 

@@ -6,8 +6,8 @@ link_directories(lib)
 include_directories(include)
 
 add_executable(newDB main.cpp
-        include/Token.h
+        include/token.h
         include/newDB.h
         include/utility.h
-        include/lexer.h
-        src/lexer.cpp)
+        src/lexer.cpp
+        include/parser.h)

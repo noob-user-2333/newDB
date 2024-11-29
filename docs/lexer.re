@@ -1,4 +1,4 @@
-#include "lexer.h"
+#include "token.h"
 namespace iedb {
 
     static token_type lexer_token(const char * start,const char *end,int& len){
@@ -23,8 +23,11 @@ namespace iedb {
          "-" {type = token_type::minus; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "*" {type = token_type::star; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "/" {type = token_type::slash; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         ">="{type = token_type::more_equal; len = static_cast<uint32>(YYCURSOR - start);return type;}
          ">" {type = token_type::more; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "<" {type = token_type::less; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         "<=" {type = token_type::less_equal; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         "!=" {type = token_type::not_equal; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "!" {type = token_type::bang; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "=" {type = token_type::equal; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "|" {type = token_type::bit_or; len = static_cast<uint32>(YYCURSOR - start);return type;}
@@ -47,13 +50,13 @@ namespace iedb {
          "'"[^']*"'" {type = token_type::string; len = static_cast<uint32>(YYCURSOR - start);return type;}
          [_a-zA-Z][_0-9a-zA-Z]*    {type = token_type::name; len = static_cast<uint32>(YYCURSOR - start);return type;}
          '0x'[0-9a-fA-F]+ {type = token_type::hex; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         * {printf("something wrong in %s\n",start);type = token_type::error;len = 1;return type;}
+         * {printf("something wrong start at %s\n",start);type = token_type::error;len = 1;return type;}
 
          */
     }
-
-	std::unique_ptr<lexer_result> lexer_result::lexer(const char *sql) {
+	std::unique_ptr<std::vector<token>> token::lexer(const char *sql) {
 		std::vector<token> tokens;
+		auto sql_string = std::make_shared<std::string>(sql);
 		auto len = strlen(sql);
 		auto start = sql;
 		auto end = start + len;
@@ -63,17 +66,14 @@ namespace iedb {
 			auto type = lexer_token(start, end + 1,  token_len);
 			if (type == token_type::error)
 				return nullptr;
-			tokens.emplace_back(type, static_cast<uint32>(start - sql), token_len);
+			tokens.emplace_back(type, static_cast<uint32>(start - sql), token_len,sql);
 			start += token_len;
 		}
-		return std::make_unique<lexer_result>(sql, tokens);
-	}
-	void lexer_result::print() {
-		for (auto token : tokens) {
-			auto str = sql.substr(token.offset,token.len);
-			printf("type:%d offset:%d len:%d %s\n",token.type,token.offset,token.len,str.c_str());
-		}
+		return std::make_unique<std::vector<token>>(tokens);
 	}
 
+	void token::print() {
+		printf("type:%d offset:%d len:%d %s\n", type, offset, len,std::string(sql,offset,len).c_str());
+	}
 
 };
