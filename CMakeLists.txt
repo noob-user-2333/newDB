@@ -10,4 +10,5 @@ add_executable(newDB main.cpp
         include/newDB.h
         include/utility.h
         src/lexer.cpp
-        include/parser.h)
+        include/parser.h
+        src/parser.cpp)

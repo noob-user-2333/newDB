@@ -66,7 +66,8 @@ namespace iedb {
 			auto type = lexer_token(start, end + 1,  token_len);
 			if (type == token_type::error)
 				return nullptr;
-			tokens.emplace_back(type, static_cast<uint32>(start - sql), token_len,sql);
+			if(type != token_type::space)
+			    tokens.emplace_back(type, static_cast<uint32>(start - sql), token_len,sql);
 			start += token_len;
 		}
 		return std::make_unique<std::vector<token>>(tokens);
