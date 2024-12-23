@@ -2,7 +2,7 @@
 // Created by user on 24-12-1.
 //
 #include "parser.h"
-#include "parse.c"
+#include "../docs/parse.c"
 namespace iedb {
     std::unique_ptr<parse_result> parse_result::parse(std::unique_ptr<std::vector<token>>  tokens) {
         auto result = std::make_unique<parse_result>(std::move(tokens));
@@ -24,7 +24,7 @@ namespace iedb {
         return nullptr;
     }
     void parse_result::print() {
-        printf("parse statement(type is %d):%s\n",type,(*tokens)[0].sql);
+        printf("parse statement(type is %d):%s\n",(int)type,(*tokens)[0].sql);
         printf("master:\n");
         print_token_list(master);
         printf("target:\n");

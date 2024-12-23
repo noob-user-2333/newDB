@@ -1,4 +1,4 @@
-#include "token.h"
+//#include "token.h"
 namespace iedb {
 
     static token_type lexer_token(const char * start,const char *end,int& len){

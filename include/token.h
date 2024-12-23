@@ -4,6 +4,9 @@
 
 #ifndef TOKEN_H
 #define TOKEN_H
+#include <memory>
+#include <vector>
+
 #include "utility.h"
 namespace iedb {
     enum class token_type{
