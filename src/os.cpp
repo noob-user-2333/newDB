@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+#include <sys/uio.h>
 namespace iedb {
     const int os::open_mode_read = O_RDONLY;
     const int os::open_mode_write = O_WRONLY;
@@ -15,6 +15,7 @@ namespace iedb {
     const int os::open_mode_read_write = O_RDWR;
     const int os::open_mode_create = O_CREAT;
     const int os::open_mode_truncate = O_TRUNC;
+    const int os::open_mode_excl = O_EXCL;
     const int os::access_mode_file_exists = F_OK;
     const int os::access_mode_can_read = R_OK;
     const int os::access_mode_can_write = W_OK;
@@ -39,6 +40,8 @@ namespace iedb {
                 return status_invalid_fd;
             case EOVERFLOW:
                 return status_argument_overflow;
+            case EEXIST:
+                return status_file_exists;
             default:
                 return status_error;
         }
@@ -88,11 +91,11 @@ namespace iedb {
         return status_ok;
     }
 
-    int os::write(int fd, const void *buf, uint64 count) {
+    int os::writev(int fd, const io_vec* io_vec, int count) {
         int error;
         int64 result;
         do {
-            result = ::write(fd, buf, count);
+            result = ::writev(fd, static_cast<iovec*>((void*)io_vec), count);
             error = errno;
         }while (result == -1 && error == EINTR);
         if (result == -1)
@@ -109,10 +112,18 @@ namespace iedb {
         if (result == -1)
             return errno_to_status_code(errno);
         return status_ok;
-
-
     }
-
+    int os::readv(int fd, const io_vec* io_vec, int count) {
+        int error;
+        int64 result;
+        do {
+            result = ::readv(fd, static_cast<iovec*>((void*)io_vec), count);
+            error = errno;
+        }while (result == -1 && error == EINTR);
+        if (result == -1)
+            return errno_to_status_code(error);
+        return status_ok;
+    }
     int os::fallocate(int fd, int64 offset, int64 length) {
         int error;
         do {

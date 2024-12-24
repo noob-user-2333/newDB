@@ -1575,7 +1575,7 @@ yy107:
 	}
 
 	void token::print() {
-		printf("type:%d offset:%d len:%d %s\n", type, offset, len,std::string(sql,offset,len).c_str());
+		printf("type:%d offset:%d len:%d %s\n", (int)type, offset, len,std::string(sql,offset,len).c_str());
 	}
 
 };

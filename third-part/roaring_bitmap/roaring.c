@@ -61,7 +61,7 @@
 #include "dmalloc.h"
 #endif
 
-#include "roaring.h"  /* include public API definitions */
+#include "roaring.h"
 /* begin file include/roaring/isadetection.h */
 #ifndef ROARING_ISADETECTION_H
 #define ROARING_ISADETECTION_H

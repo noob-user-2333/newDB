@@ -2,8 +2,6 @@
 // Created by user on 24-12-17.
 //
 #include "table.h"
-#include "os.h"
-
 #include <stdexcept>
 /*
  *
@@ -75,26 +73,26 @@ namespace iedb {
     }
 
 
-    std::unique_ptr<table> table::create_from_file(int fd) {
-        uint64 size;
-        auto status = os::get_file_size(fd, size);
-        if (status != status_ok)
-            return nullptr;
-        uint8 buffer[size];
-        //读取文件
-        status = os::read(fd, 0, buffer, size);
-        if (status != status_ok) {
-            fprintf(stderr, "read file of table format\n");
-            return nullptr;
-        }
-        os::close(fd);
-        std::string name;
-        std::vector<col_def> cols;
-        status = format_parse(buffer, size, name, cols);
-        if (status == status_ok)
-            return std::unique_ptr<table>(new table(name, cols));
-        return nullptr;
-    }
+    // std::unique_ptr<table> table::create_from_file(int fd) {
+    //     uint64 size;
+    //     auto status = os::get_file_size(fd, size);
+    //     if (status != status_ok)
+    //         return nullptr;
+    //     uint8 buffer[size];
+    //     //读取文件
+    //     status = os::read(fd, 0, buffer, size);
+    //     if (status != status_ok) {
+    //         fprintf(stderr, "read file of table format\n");
+    //         return nullptr;
+    //     }
+    //     os::close(fd);
+    //     std::string name;
+    //     std::vector<col_def> cols;
+    //     status = format_parse(buffer, size, name, cols);
+    //     if (status == status_ok)
+    //         return std::unique_ptr<table>(new table(name, cols));
+    //     return nullptr;
+    // }
     std::unique_ptr<table> table::create_new(const char * name) {
         return std::unique_ptr<table>(new table(name));
     }
