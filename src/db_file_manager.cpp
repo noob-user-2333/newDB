@@ -6,69 +6,9 @@
 
 namespace iedb {
 
-    struct journal_page_header {
-        uint32 page_no;
-        uint32 check_sum;
-        journal_page_header(uint32 page_no,uint32 check_sum):page_no(page_no),check_sum(check_sum){}
-    };
-
-    int journal_header::check_header() const {
-            if (memcmp(magic, magic_string, sizeof(magic_string)) == 0)
-                return status_ok;
-            return status_error;
-    }
-
-    int64 journal_header::get_journal_page_offset(uint32 page_no) {
-        return static_cast<int64>(sizeof(journal_header) + page_no * (sizeof(journal_page_header) + page_size));
-    }
-
-
-
-    int db_file_manager::create_journal() {
-        assert(status == file_status::transaction);
-        auto _status = 0;
-        maybe_error(os::open(journal_name.c_str(),os::open_mode_read_write | os::open_mode_create,0666,fd_journal));
-        uint64 size;
-        maybe_error(os::get_file_size(fd,size));
-        header.origin_file_size = size;
-        header.page_count = 0;
-        maybe_error(os::write(fd_journal,0,&header,sizeof(journal_header)));
-            return status_ok;
-        error_handle:
-        if (os::access(journal_name.c_str(),os::access_mode_file_exists) == status_ok)
-            os::unlink(journal_name.c_str());
-        return _status;
-    }
-    int db_file_manager::delete_journal(){
-        assert(status == file_status::transaction);
-        os::close(fd_journal);
-        auto _status = os::unlink(journal_name.c_str());
-        if (_status != status_ok)
-            status = file_status::error;
-        return _status;
-    }
-    int db_file_manager::backup_page(uint32 page_no,void *buffer) {
-        assert(status == file_status::transaction);
-        if (bitmap.contains(page_no))
-            return status_ok;
-        os::io_vec vec[2];
-        vec[0].set(&header, sizeof(journal_page_header));
-        vec[1].set(buffer, page_size);
-        auto _status = 0;
-        //修改日志头
-        auto offset = journal_header::get_journal_page_offset(header.page_count);
-        header.page_count++;
-        maybe_error(os::seek(fd,offset,os::seek_mode_set,offset));
-        maybe_error(os::writev(fd_journal,vec,2));
-        maybe_error(os::write(fd_journal,0,&header,sizeof(journal_page_header)));
-        maybe_error(os::fdatasync(fd_journal));
-        return status_ok;
-        error_handle:
-            status = file_status::error;
-            return _status;
-    }
-
-    db_file_manager::db_file_manager(std::string filename, int fd):fd_journal(0),filename(std::move(filename)),fd(fd),status(file_status::error),meta_page() {
+    db_file_manager::db_file_manager(std::string filename, int fd):fd_wal(0),filename(std::move(filename)),
+    fd(fd),status(file_status::normal),file_header(),wal_name() {
+        wal_name = this->filename + "-wal";
     }
     db_file_manager::~db_file_manager() {
         os::close(fd);
@@ -86,36 +26,77 @@ namespace iedb {
             return nullptr;
         }
         auto db_file = new db_file_manager(name,fd);
-        status = db_file->rollback_transaction();
+        //检查是否存在wal日志文件，如存在则进入error状态
+        status = os::access(db_file->wal_name.c_str(),os::access_mode_file_exists);
         if (status != status_ok) {
-            delete db_file;
-            fprintf(stderr, "rollback failed after open file %s:%d",name,status);
-            return nullptr;
+            db_file->status = file_status::error;
+            status = db_file->wal_commit();
+            if (status!= status_ok) {
+                fprintf(stderr, "can't commit wal file %s\n", db_file->wal_name.c_str());
+                delete db_file;
+                return nullptr;
+            }
         }
         return std::unique_ptr<db_file_manager>(db_file);
     }
 
-    int db_file_manager::begin_transaction() {
+    int db_file_manager::begin_write_transaction() {
         assert(status == file_status::normal);
-        const auto _status = os::read(fd,0,meta_page,page_size);
-        if (_status == status_ok)
-            status = file_status::transaction;
+        auto _status = os::read(fd,0,&file_header,sizeof(file_header));
+        if (_status == status_ok) {
+            _status = wal_create();
+            if (_status == status_ok)
+                status = file_status::transaction_write;
+        }
         return _status;
     }
+    int db_file_manager::begin_read_transaction() {
+        assert(status == file_status::normal);
+        auto _status = os::read(fd,0,&file_header,sizeof(file_header));
+        if (_status == status_ok)
+            status = file_status::transaction_read;
+        return _status;
+    }
+
     int db_file_manager::commit_transaction() {
-        assert(status == file_status::transaction);
-        auto _status = delete_journal();
-        if (_status!= status_ok) {
-            status = file_status::error;
-            return _status;
+        assert(status == file_status::transaction_write || status == file_status::transaction_read);
+        if (status == file_status::transaction_write) {
+            auto _status = wal_commit();
+            if (_status!= status_ok) {
+                status = file_status::error;
+                return _status;
+            }
+            wal_delete();
         }
         status = file_status::normal;
         return status_ok;
     }
-    int db_file_manager::rollback_transaction() {
+
+    int db_file_manager::append(void *buffer, uint64 size) {
+        assert(status == file_status::normal);
+        auto _status = 0;
+        maybe_error(os::read(fd,0,&file_header,sizeof(file_header)));
+        maybe_error(os::write(fd,static_cast<int64>(file_header.file_size),buffer,size));
+        file_header.file_size += size;
+        file_header.record_count++;
+        maybe_error(os::write(fd,0,&file_header,sizeof(file_header)));
         return status_ok;
+        error_handle:
+            return _status;
     }
 
+    int db_file_manager::read(int64 offset, void *buffer, uint64 size) {
+        assert(status == file_status::transaction_read);
+        if (offset + size > file_header.file_size)
+            return status_invalid_argument;
+        return os::read(fd,offset,&buffer,size);
+    }
 
+    int db_file_manager::write(int64 offset, void *buffer, uint64 size) {
+        assert(status == file_status::transaction_write);
+        if (offset > file_header.file_size)
+            return status_invalid_argument;
+        return wal_add_record(offset,buffer,size);
+    }
 
 }

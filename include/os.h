@@ -47,7 +47,7 @@ namespace iedb {
         // static int mmap(int fd,int64 offset,uint64 length,void* & out_start);
         // static int munmap(void * start,uint64 length);
         static int ftruncate(int fd, int64 length);
-
+        static uint64 compute_checksum(const void * buffer, uint64 size);
     };
 }
 

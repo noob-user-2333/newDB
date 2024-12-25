@@ -179,5 +179,19 @@ namespace iedb {
             return errno_to_status_code(error);
         return status_ok;
     }
+    uint64 os::compute_checksum(const void *buffer, uint64 size) {
+        auto sum = 0UL;
+        const auto buff = static_cast<const uint8*>(buffer);
+        uint64 i;
+        for (i = 0; i < size; i+=8) {
+            sum += *reinterpret_cast<const int64 *>(buff + i);
+        }
+        i -= 8;
+        while (i < size) {
+            sum += buff[i];
+            i++;
+        }
+        return sum;
+    }
 
 }

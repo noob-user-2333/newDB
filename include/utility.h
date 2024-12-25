@@ -38,6 +38,7 @@ namespace iedb {
     static constexpr int status_not_find_table = 9;
     static constexpr int status_column_exists = 10;
     static constexpr int status_file_exists = 11;
+    static constexpr int status_invalid_checksum = 12;
 
     static constexpr char wal_magic_string[16] = "iedb wal file";
     static constexpr char wal_index_magic_string[16] = "iedb wal index";
