@@ -36,8 +36,10 @@ namespace iedb {
         static int close(int fd);
         static int seek(int fd,int64 offset,int mode,int64 & out_current_offset);
         static int write(int fd,int64 offset,const void *buf,uint64 count);
+        static int write(int fd,const void *buf,uint64 count);
         static int writev(int fd,const io_vec *iov, int iov_count);
         static int read(int fd,int64 offset,void *buf,uint64 count);
+        static int read(int fd,void *buf,uint64 count);
         static int readv(int fd,const io_vec *iov, int iov_count);
         static int fallocate(int fd,int64 offset,int64 length);
         static int fdatasync(int fd);
@@ -47,7 +49,7 @@ namespace iedb {
         // static int mmap(int fd,int64 offset,uint64 length,void* & out_start);
         // static int munmap(void * start,uint64 length);
         static int ftruncate(int fd, int64 length);
-        static uint64 compute_checksum(const void * buffer, uint64 size);
+        static uint64 calculate_checksum(const void * buffer, uint64 size);
     };
 }
 

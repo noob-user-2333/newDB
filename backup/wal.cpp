@@ -25,9 +25,9 @@ namespace iedb {
         auto _status = 0;
         //创建日志文件并初始化文件头
         maybe_error(os::open(wal_name.c_str(),os::open_mode_read_write | os::open_mode_create | os::open_mode_excl,0666,fd_wal));
-        wal_header.record_count = 0;
-        wal_header.wal_file_size = sizeof(wal_header);
-        maybe_error(os::write(fd_wal,0,&wal_header,sizeof(wal_header)));
+        _wal_header.record_count = 0;
+        _wal_header.wal_file_size = sizeof(_wal_header);
+        maybe_error(os::write(fd_wal,0,&_wal_header,sizeof(_wal_header)));
             return status_ok;
         error_handle:
             return _status;
@@ -50,12 +50,12 @@ namespace iedb {
         wal_record_header record_header{};
         //如果当前为error状态，则需重新读取文件头
         if (status == file_status::error)
-            maybe_error(os::read(fd_wal,0,&wal_header,sizeof(wal_header)));
+            maybe_error(os::read(fd_wal,0,&_wal_header,sizeof(_wal_header)));
         //其他与正常提交修改相同
         vec[0].set(&record_header,sizeof(record_header));
         vec[1].set(buffer.data(),0);
-        maybe_error(os::seek(fd_wal,os::seek_mode_set,sizeof(wal_header),offset));
-        for (auto i = 0;i < wal_header.record_count;i++) {
+        maybe_error(os::seek(fd_wal,os::seek_mode_set,sizeof(_wal_header),offset));
+        for (auto i = 0;i < _wal_header.record_count;i++) {
             //读取记录头
             maybe_error(os::readv(fd_wal,vec,1));
             //准备读取记录
@@ -87,8 +87,8 @@ namespace iedb {
         vec[1].set(record,record_size);
         const auto _status = os::writev(fd_wal,vec,2);
         if (_status == status_ok) {
-            wal_header.record_count++;
-            wal_header.wal_file_size += sizeof(wal_record_header) + record_size;
+            _wal_header.record_count++;
+            _wal_header.wal_file_size += sizeof(wal_record_header) + record_size;
             return status_ok;
         }
         status = file_status::error;
@@ -102,7 +102,7 @@ namespace iedb {
             return status_ok;
         //如果存在wal文件，则需要根据wal文件重新提交写入到原文件
         maybe_error(os::open(wal_name.c_str(),os::open_mode_read_write,0666,fd_wal));
-        maybe_error(os::read(fd_wal,0,&wal_header,sizeof(wal_header)));
+        maybe_error(os::read(fd_wal,0,&_wal_header,sizeof(_wal_header)));
         maybe_error(wal_commit());
         maybe_error(wal_delete());
         return status_ok;

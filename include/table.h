@@ -55,13 +55,12 @@ namespace iedb {
         std::vector<col_def> cols;
         int fixed_len_data_size;
 
-        table() = delete;
         explicit table(std::string name);
         table(std::string& name,std::vector<col_def>& cols);
         static int format_parse(void *table_format,uint64 size,std::string &out_name,std::vector<col_def> &out_cols);
         static int get_data_type_size(column_type type);
     public:
-        // static std::unique_ptr<table> create_from_file(int fd);
+        table() = delete;
         static std::unique_ptr<table> create_new(const char * name);
         int get_table_size() const;
         int get_fixed_len_data_size() const;

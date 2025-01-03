@@ -22,7 +22,6 @@ namespace iedb {
     using int64 = long;
     using uint64 = unsigned long;
 
-    static constexpr uint32 page_size = 0x1000;
 
 
     static constexpr int status_error= -1;
@@ -33,17 +32,17 @@ namespace iedb {
     static constexpr int status_not_access  = 4;
     static constexpr int status_io_error = 5;
     static constexpr int status_argument_overflow = 6;
-    static constexpr int status_invalid_wal_page = 7;
+    static constexpr int status_invalid_journal_page = 7;
     static constexpr int status_not_find_column = 8;
     static constexpr int status_not_find_table = 9;
     static constexpr int status_column_exists = 10;
     static constexpr int status_file_exists = 11;
     static constexpr int status_invalid_checksum = 12;
+    static constexpr int status_invalid_journal = 13;
+    static constexpr int status_file_read_complete = 14;
 
-    static constexpr char wal_magic_string[16] = "iedb wal file";
-    static constexpr char wal_index_magic_string[16] = "iedb wal index";
-    static constexpr int wal_index_hash_size = 32 * 1024;
-    static constexpr int wal_index_item_per_hash = wal_index_hash_size / sizeof(uint32);
+
+    static constexpr int page_size = 32 * 1024;
     static constexpr uint64 current_format_version = 0x0001000;
 
 };

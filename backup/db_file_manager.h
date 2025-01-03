@@ -40,16 +40,15 @@ namespace iedb {
     class db_file_manager {
     private:
         //wal私有数据
-        wal_header wal_header;  //用于暂存日志头
+        wal_header _wal_header;  //用于暂存日志头
         std::string wal_name;
         int fd_wal;
         //数据库文件私有数据
         std::string filename;
         int fd;
         file_status status;
-        file_header file_header;
+        file_header _file_header;
         db_file_manager(std::string filename,int fd);
-        static int check_sum_compute(void * page_data);
         int wal_create();
         int wal_delete();
         int wal_commit();

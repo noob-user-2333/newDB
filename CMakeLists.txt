@@ -5,9 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 link_directories(lib)
 include_directories(include)
 aux_source_directory(src SOURCES)
-
+add_compile_options(-mavx2)
 
 add_executable(newDB  ${SOURCES} main.cpp
+        include/journal.h
+        include/file.h
         #roaring_bitmap
         third-part/roaring_bitmap/roaring.hh
         third-part/roaring_bitmap/roaring.h

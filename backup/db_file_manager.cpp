@@ -7,7 +7,7 @@
 namespace iedb {
 
     db_file_manager::db_file_manager(std::string filename, int fd):fd_wal(0),filename(std::move(filename)),
-    fd(fd),status(file_status::normal),file_header(),wal_name() {
+    fd(fd),status(file_status::normal),_file_header(),wal_name() {
         wal_name = this->filename + "-wal";
     }
     db_file_manager::~db_file_manager() {
@@ -42,7 +42,7 @@ namespace iedb {
 
     int db_file_manager::begin_write_transaction() {
         assert(status == file_status::normal);
-        auto _status = os::read(fd,0,&file_header,sizeof(file_header));
+        auto _status = os::read(fd,0,&_file_header,sizeof(_file_header));
         if (_status == status_ok) {
             _status = wal_create();
             if (_status == status_ok)
@@ -52,7 +52,7 @@ namespace iedb {
     }
     int db_file_manager::begin_read_transaction() {
         assert(status == file_status::normal);
-        auto _status = os::read(fd,0,&file_header,sizeof(file_header));
+        auto _status = os::read(fd,0,&_file_header,sizeof(_file_header));
         if (_status == status_ok)
             status = file_status::transaction_read;
         return _status;
@@ -75,11 +75,11 @@ namespace iedb {
     int db_file_manager::append(void *buffer, uint64 size) {
         assert(status == file_status::normal);
         auto _status = 0;
-        maybe_error(os::read(fd,0,&file_header,sizeof(file_header)));
-        maybe_error(os::write(fd,static_cast<int64>(file_header.file_size),buffer,size));
-        file_header.file_size += size;
-        file_header.record_count++;
-        maybe_error(os::write(fd,0,&file_header,sizeof(file_header)));
+        maybe_error(os::read(fd,0,&_file_header,sizeof(_file_header)));
+        maybe_error(os::write(fd,static_cast<int64>(_file_header.file_size),buffer,size));
+        _file_header.file_size += size;
+        _file_header.record_count++;
+        maybe_error(os::write(fd,0,&_file_header,sizeof(_file_header)));
         return status_ok;
         error_handle:
             return _status;
@@ -87,14 +87,14 @@ namespace iedb {
 
     int db_file_manager::read(int64 offset, void *buffer, uint64 size) {
         assert(status == file_status::transaction_read);
-        if (offset + size > file_header.file_size)
+        if (offset + size > _file_header.file_size)
             return status_invalid_argument;
         return os::read(fd,offset,&buffer,size);
     }
 
     int db_file_manager::write(int64 offset, void *buffer, uint64 size) {
         assert(status == file_status::transaction_write);
-        if (offset > file_header.file_size)
+        if (offset > _file_header.file_size)
             return status_invalid_argument;
         return wal_add_record(offset,buffer,size);
     }

@@ -3,6 +3,9 @@
 //
 
 #include "os.h"
+
+#include <immintrin.h>
+#include <avx2intrin.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -90,6 +93,17 @@ namespace iedb {
             return errno_to_status_code(error);
         return status_ok;
     }
+    int os::write(int fd, const void *buf, uint64 count) {
+        auto result = 0L;
+        auto error = 0;
+        do {
+            result = ::write(fd, buf, count);
+            error = errno;
+        }while (result == -1 && error == EINTR);
+        if (result == -1)
+            return errno_to_status_code(error);
+        return status_ok;
+    }
 
     int os::writev(int fd, const io_vec* io_vec, int count) {
         int error;
@@ -113,6 +127,18 @@ namespace iedb {
             return errno_to_status_code(errno);
         return status_ok;
     }
+    int os::read(int fd, void *buf, uint64 count) {
+        auto result = 0L;
+        do {
+            result = ::read(fd, buf, count);
+        }while (result == -1 && errno == EINTR);
+        if (result == -1)
+            return errno_to_status_code(errno);
+        return status_ok;
+    }
+
+
+
     int os::readv(int fd, const io_vec* io_vec, int count) {
         int error;
         int64 result;
@@ -179,19 +205,34 @@ namespace iedb {
             return errno_to_status_code(error);
         return status_ok;
     }
-    uint64 os::compute_checksum(const void *buffer, uint64 size) {
-        auto sum = 0UL;
-        const auto buff = static_cast<const uint8*>(buffer);
-        uint64 i;
-        for (i = 0; i < size; i+=8) {
-            sum += *reinterpret_cast<const int64 *>(buff + i);
+    uint64_t os::calculate_checksum(const void *buffer,uint64 size) {
+        const auto data = static_cast<const char*>(buffer);
+        __m256i checksum = _mm256_setzero_si256(); // 初始化 256 位寄存器为 0
+        size_t i = 0;
+
+        // 每次处理 32 字节（4 个 64 位整数）
+        for (; i + 32 <= size; i += 32) {
+            const __m256i chunk = _mm256_loadu_si256((__m256i *)(data + i)); // 加载 32 字节数据
+            checksum = _mm256_add_epi64(checksum, chunk); // 逐 64 位并行累加
         }
-        i -= 8;
-        while (i < size) {
-            sum += buff[i];
-            i++;
+
+        // 汇总 256 位寄存器的结果到标量
+        uint64_t temp[4];
+        _mm256_storeu_si256((__m256i *)temp, checksum); // 存储到临时数组
+        uint64_t total_sum = temp[0] + temp[1] + temp[2] + temp[3]; // 求和
+
+        // 处理剩余不足 32 字节的部分（逐 8 字节处理）
+        for (; i + 8 <= size; i += 8) {
+            uint64_t chunk = *(uint64_t *)(data + i); // 加载 8 字节数据
+            total_sum += chunk;
         }
-        return sum;
+
+        // 处理不足 8 字节的尾部数据（逐字节处理）
+        for (; i < size; ++i) {
+            total_sum += data[i];
+        }
+
+        return total_sum;
     }
 
 }
