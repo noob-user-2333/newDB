@@ -55,18 +55,6 @@ op(A) ::= LESS_EQUAL(B).     {A=B;}
 expr(A) ::= item(B).   {A=B;}
 expr(A) ::= item(B) op(C) item(D). {B->child = C; C->child = D; A = B;}
 
-//插入语句
-cmd ::= INSERT INTO NAME(A) VALUES PARENTHESIS_LEFT values(B) PARENTHESIS_RIGHT SEMI.{
-    result->type = token_type::insert;
-    result->target = A;
-    result->master = B;
-}
-values(A) ::= values(B) COMMA value(C).{B->brother = C; A=B;}
-values(A) ::= value(B). {A=B;}
-value(A) ::= HEX(B). {A=B;}
-value(A) ::= NUMBER_INT(B).{A=B;}
-value(A) ::= NUMBER_FLOAT(B).{A=B;}
-value(A) ::= STRING(B).{A=B;}
 //建表语句
 cmd ::= CREATE TABLE NAME(A) BRACE_LEFT colsdef(B) BRACE_RIGHT SEMI.{
     result->type = token_type::create;
@@ -77,15 +65,9 @@ colsdef(A) ::= colsdef(B) COMMA coldef(C).{B->brother = C; A=B;}
 colsdef(A) ::= coldef(B).{A=B;}
 coldef(A) ::= NAME(B) type(C).{B->child = C; A=B;}
 
-type(A) ::= INT8(B).{A=B;}
-type(A) ::= INT16(B).{A=B;}
-type(A) ::= INT32(B).{A=B;}
-type(A) ::= INT64(B).{A=B;}
-type(A) ::= UINT8(B).{A=B;}
-type(A) ::= UINT16(B).{A=B;}
-type(A) ::= UINT32(B).{A=B;}
-type(A) ::= UINT64(B).{A=B;}
+type(A) ::= INT(B).{A=B;}
 type(A) ::= FLOAT(B).{A=B;}
+type(A) ::= TEXT(B).{A=B;}
 
 //删除语句
 cmd ::= DELETE FROM NAME(A) where_statement(B) SEMI.{

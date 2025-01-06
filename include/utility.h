@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-
+#include <unordered_map>
 namespace iedb {
     using int8 = char;
     using uint8 = unsigned char;

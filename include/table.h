@@ -63,6 +63,7 @@ namespace iedb {
         table() = delete;
         static std::unique_ptr<table> create_new(const char * name);
         int get_table_size() const;
+        const std::string& get_name() const;
         int get_fixed_len_data_size() const;
         const col_def* get_col_by_name(const std::string& name);
         const col_def* get_col_by_index(int index) const;

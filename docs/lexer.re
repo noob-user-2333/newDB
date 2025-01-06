@@ -1,11 +1,14 @@
-//#include "token.h"
+#include "token.h"
 namespace iedb {
-
+#define re2c_token_process(x) { type = x; \
+len = static_cast<uint32>(YYCURSOR - start); \
+return type;}
     static token_type lexer_token(const char * start,const char *end,int& len){
          const char * YYCURSOR = start;
          const char * YYMARKER = YYCURSOR;
          const char * YYLIMIT = end;
          token_type type = token_type::error;
+
          /*!re2c
          re2c:define:YYCTYPE = char;
          re2c:yyfill:enable = 0;
@@ -44,6 +47,9 @@ namespace iedb {
          "order" {type = token_type::order; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "group" {type = token_type::group; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "by" {type = token_type::by; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         "int" {re2c_token_process(token_type::Int)}
+         "float" {re2c_token_process(token_type::Float)}
+         "text" {re2c_token_process(token_type::text)}
          [ \t\r\n]+ {type = token_type::space; len = static_cast<uint32>(YYCURSOR - start);return type;}
          [0-9]+"."[0-9]+ {type = token_type::number_float; len = static_cast<uint32>(YYCURSOR - start);return type;}
          [0-9]+ {type = token_type::number_int; len = static_cast<uint32>(YYCURSOR - start);return type;}
@@ -73,7 +79,7 @@ namespace iedb {
 		return std::make_unique<std::vector<token>>(tokens);
 	}
 
-	void token::print() {
+	void token::print() const{
 		printf("type:%d offset:%d len:%d %s\n", (int)type, offset, len,std::string(sql,offset,len).c_str());
 	}
 

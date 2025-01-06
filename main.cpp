@@ -1,11 +1,9 @@
-#include <math.h>
-#include <string>
-#include <iostream>
-const char* tests[] = {
-    "select * from test  where id > 3 order by id  ;",
-  };
+#include "db_data_manager.h"
+
+using namespace iedb;
+constexpr char path[] = "/dev/shm/iedb.db";
 int main() {
-    std::string str= "test";
-    std::cout << str << std::endl;
+    auto db = db_data_manager::open(path);
+    db->insert_record("test","ok",3);
     return 0;
 }

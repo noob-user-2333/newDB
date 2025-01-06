@@ -58,15 +58,9 @@ namespace iedb {
         group,
         by,
         table,
-        int8,
-        int16,
-        int32,
-        int64,
-        uint8,
-        uint16,
-        uint32,
-        uint64,
+        Int,
         Float,
+        text,
         into,
         values
     };
@@ -76,10 +70,13 @@ namespace iedb {
         const uint32 offset;
         const uint32 len;
         const char* sql;
-        token * brother;
-        token * child;
+        token * brother; //指向下一个表达式
+        token * child;  //指向下一个单词
         token(token_type type,uint32 offset,uint32 len,const char* sql):type(type),offset(offset),len(len),sql(sql),brother(nullptr),child(nullptr){}
-        void print();
+        void print()const;
+        [[nodiscard]] std::string to_string() const {
+            return {sql, offset, len};
+        }
         static std::unique_ptr<std::vector<token>> lexer(const char * sql);
     };
 

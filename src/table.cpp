@@ -71,6 +71,9 @@ namespace iedb {
     }
     table::table(std::string name):name(std::move(name)), name_to_col(),cols(),fixed_len_data_size(0){
     }
+    const std::string &table::get_name() const {
+        return name;
+    }
 
 
     // std::unique_ptr<table> table::create_from_file(int fd) {
