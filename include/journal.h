@@ -16,7 +16,6 @@ namespace iedb {
     */
     class journal {
     private:
-
         struct journal_meta {
             static constexpr char magic_string[16] = "iedb_journal";
             char magic[16];

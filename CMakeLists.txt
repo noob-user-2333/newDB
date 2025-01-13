@@ -16,6 +16,7 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         #sqlite
         third-part/sqlite/sqlite3.c
         third-part/sqlite/sqlite3.h
+        include/db.h
+        src/db.cpp
 )
 
-target_link_libraries(newDB PRIVATE ${CMAKE_SOURCE_DIR}/lib/libbase64.o)

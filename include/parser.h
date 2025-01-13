@@ -19,6 +19,7 @@ namespace iedb {
         explicit parse_result(std::unique_ptr<std::vector<token>> tokens):tokens(std::move(tokens)), type(token_type::space),master(nullptr),target(nullptr), filter(nullptr), group(nullptr), order(nullptr), limit(nullptr){}
         static std::unique_ptr<parse_result> parse(std::unique_ptr<std::vector<token>> tokens);
         void print();
+
     private:
         static void print_token_list(token * first);
     };

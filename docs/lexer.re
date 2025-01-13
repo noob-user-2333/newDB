@@ -35,21 +35,26 @@ return type;}
          "=" {type = token_type::equal; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "|" {type = token_type::bit_or; len = static_cast<uint32>(YYCURSOR - start);return type;}
          "&" {type = token_type::bit_and; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "not" {type = token_type::Not; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "and" {type = token_type::And; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "or" {type = token_type::Or; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "select" {type = token_type::select; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "create" {type = token_type::create; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "update" {type = token_type::update; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "delete" {type = token_type::Delete; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "from" {type = token_type::from; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "where" {type = token_type::where; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "order" {type = token_type::order; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "group" {type = token_type::group; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "by" {type = token_type::by; len = static_cast<uint32>(YYCURSOR - start);return type;}
-         "int" {re2c_token_process(token_type::Int)}
-         "float" {re2c_token_process(token_type::Float)}
-         "text" {re2c_token_process(token_type::text)}
+         "%" {re2c_token_process(token_type::percent)}
+         'not' {type = token_type::Not; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'and' {type = token_type::And; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'or' {type = token_type::Or; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'select' {type = token_type::select; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'create' {type = token_type::create; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'update' {type = token_type::update; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'delete' {type = token_type::Delete; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'from' {type = token_type::from; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'where' {type = token_type::where; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'order' {type = token_type::order; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'group' {type = token_type::group; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'by' {type = token_type::by; len = static_cast<uint32>(YYCURSOR - start);return type;}
+         'values' {re2c_token_process(token_type::values)}
+         'int' {re2c_token_process(token_type::Int)}
+         'float' {re2c_token_process(token_type::Float)}
+         'text' {re2c_token_process(token_type::text)}
+         'table' {re2c_token_process(token_type::table)}
+         'insert' {re2c_token_process(token_type::insert)}
+         'into' {re2c_token_process(token_type::into)}
          [ \t\r\n]+ {type = token_type::space; len = static_cast<uint32>(YYCURSOR - start);return type;}
          [0-9]+"."[0-9]+ {type = token_type::number_float; len = static_cast<uint32>(YYCURSOR - start);return type;}
          [0-9]+ {type = token_type::number_int; len = static_cast<uint32>(YYCURSOR - start);return type;}

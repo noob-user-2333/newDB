@@ -19,16 +19,9 @@
 namespace iedb {
     enum class column_type {
         unknown,
-        int8,
-        int16,
-        int32,
-        int64,
-        uint8,
-        uint16,
-        uint32,
-        uint64,
-        float_,
-        blob
+        Int,
+        Float,
+        text
     };
 
     struct col_def {
@@ -47,6 +40,15 @@ namespace iedb {
     };
 
 
+    /*
+     *  表定义物理结构
+     *   uint32 表名长度 n
+     *   uint32 列数 m
+     *   n byte 表名
+     *   m * 44 列定义
+     *
+     *
+     */
     //核心功能为读取指定文件，将其内容翻译为表格式
     class table {
     private:
@@ -57,15 +59,17 @@ namespace iedb {
 
         explicit table(std::string name);
         table(std::string& name,std::vector<col_def>& cols);
-        static int format_parse(void *table_format,uint64 size,std::string &out_name,std::vector<col_def> &out_cols);
         static int get_data_type_size(column_type type);
     public:
         table() = delete;
-        static std::unique_ptr<table> create_new(const char * name);
+        static std::unique_ptr<table> get(const void *buffer,uint64 size);
+        static std::unique_ptr<table> create_new(std::string name);
+        static int64 get_translate_need_buffer_size(table& translate_table);
+        static int64 translate_to_buffer(table& translate_table, void* buffer);
         int get_table_size() const;
         const std::string& get_name() const;
         int get_fixed_len_data_size() const;
-        const col_def* get_col_by_name(const std::string& name);
+        const col_def* get_col_by_name(const std::string& name)const ;
         const col_def* get_col_by_index(int index) const;
         int get_col_count() const;
         int add_column(const std::string& name, column_type type, uint32 element_count);

@@ -42,6 +42,7 @@ namespace iedb {
         equal,
         bit_or,
         bit_and,
+        percent,
         //关键字
         Not,
         And,
@@ -62,7 +63,7 @@ namespace iedb {
         Float,
         text,
         into,
-        values
+        values,
     };
 
     struct token {
@@ -72,6 +73,8 @@ namespace iedb {
         const char* sql;
         token * brother; //指向下一个表达式
         token * child;  //指向下一个单词
+        // token * left;
+        // token * right;
         token(token_type type,uint32 offset,uint32 len,const char* sql):type(type),offset(offset),len(len),sql(sql),brother(nullptr),child(nullptr){}
         void print()const;
         [[nodiscard]] std::string to_string() const {

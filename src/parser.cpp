@@ -2,6 +2,9 @@
 // Created by user on 24-12-1.
 //
 #include "parser.h"
+
+#include <stack>
+
 #include "../docs/parse.c"
 namespace iedb {
     std::unique_ptr<parse_result> parse_result::parse(std::unique_ptr<std::vector<token>>  tokens) {
@@ -38,18 +41,19 @@ namespace iedb {
         printf("limit:\n");
         print_token_list(limit);
     }
+    static void print_token_list_dfs(token * root)
+    {
+        for (auto node = root; node != nullptr; node = node->child)
+            printf("%s  ",node->to_string().c_str());
+    }
 
 
 
     void parse_result::print_token_list(token * first) {
-        while (first) {
-            for (auto f = first;f;f = f->child){
-                std::string str(f->sql,f->offset,f->len);
-                printf(" %s ",str.c_str());
+            for (auto f = first;f;f = f->brother){
+                print_token_list_dfs(f);
+                printf("\n");
             }
-            first = first->brother;
-            printf("\n");
-        }
     }
 
 };

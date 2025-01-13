@@ -37,9 +37,12 @@ namespace iedb {
     static constexpr int status_not_find_table = 9;
     static constexpr int status_column_exists = 10;
     static constexpr int status_file_exists = 11;
-    static constexpr int status_invalid_checksum = 12;
-    static constexpr int status_invalid_journal = 13;
-    static constexpr int status_file_read_complete = 14;
+    static constexpr int status_table_exists = 12;
+    static constexpr int status_invalid_checksum = 13;
+    static constexpr int status_invalid_journal = 14;
+    static constexpr int status_invalid_data_type = 15;
+    static constexpr int status_invalid_sql = 16;
+    static constexpr int status_file_read_complete = 17;
 
 
     static constexpr int page_size = 32 * 1024;
