@@ -12,6 +12,9 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <queue>
+#include <stack>
+#include <stdexcept>
 namespace iedb {
     using int8 = char;
     using uint8 = unsigned char;

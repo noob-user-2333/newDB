@@ -3,9 +3,6 @@
 //
 #include "expr.h"
 
-#include <queue>
-#include <stack>
-#include <stdexcept>
 
 namespace iedb
 {
@@ -29,12 +26,12 @@ namespace iedb
         {token_type::name, op_type::load_col}
     };
     const std::unordered_map<token_type, int> expr::op_priority = {
-        {token_type::parenthesis_left,100},
-        {token_type::plus, 4},
-        {token_type::minus, 4},
+        {token_type::parenthesis_left, 100},
         {token_type::star, 3},
         {token_type::slash, 3},
         {token_type::percent, 3},
+        {token_type::plus, 4},
+        {token_type::minus, 4},
         {token_type::less, 6},
         {token_type::less_equal, 6},
         {token_type::more, 6},
@@ -66,8 +63,12 @@ namespace iedb
         };
         return map[static_cast<int>(op)];
     }
+    instruct instruct::get_end_instruct()
+    {
+        return {instruct::op_type::end, instruct::data_type::Int, 0L};
+    }
 
-    instruct expr::token_to_imm_instruct(const token& node)
+    instruct expr::token_to_instruct(const token& node, const table& target_table)
     {
         auto start = node.sql + node.offset;
         auto len = node.len;
@@ -93,37 +94,43 @@ namespace iedb
                 assert(str_end == end);
                 return {instruct::op_type::load_imm, instruct::data_type::Float, value};
             }
+        case token_type::name:
+            {
+                auto col = target_table.get_col_by_name(node.to_string());
+                if (col == nullptr)
+                    return {
+                        instruct::op_type::error, instruct::data_type::Int, static_cast<long>(status_not_find_column)
+                    };
+                int64 offset = col->line_offset;
+                instruct::op_type op = instruct::op_type::load_col;
+                instruct::data_type data_type;
+                //根据列类型决定操作
+                switch (col->type)
+                {
+                case column_type::Int:
+                    return {op, instruct::data_type::Int, offset};
+                case column_type::text:
+                    return {op, instruct::data_type::Text, offset};
+                case column_type::Float:
+                    return {op, instruct::data_type::Float, offset};
+                default:
+                    throw std::runtime_error("should not happen in expr::convert_token_to_instruct");
+                }
+                return {instruct::op_type::error, instruct::data_type::Int, static_cast<long>(status_error)};
+            }
         default:
-            throw std::runtime_error("should never happen for token_to_imm_instruct");
+            {
+                //此处用于处理运算符
+                auto it = instruct::token_to_op.find(node.type);
+                if (it != instruct::token_to_op.end())
+                    return {it->second, instruct::data_type::Int, 0L};
+                throw std::runtime_error("should never happen for token_to_imm_instruct");
+            }
         }
     }
 
-    instruct expr::token_to_col_instruct(const token& token, const col_def& col)
-    {
-        int64 offset = col.line_offset;
-        instruct::data_type type;
-        switch (col.type)
-        {
-        case column_type::Int:
-            type = instruct::data_type::Int;
-            break;
-        case column_type::text:
-            type = instruct::data_type::Text;
-            break;
-        case column_type::Float:
-            type = instruct::data_type::Float;
-            break;
-        default:
-            throw std::runtime_error("should never happen for token_to_col_instruct");
-        }
-        return {instruct::op_type::load_col, type, offset};
-    }
 
-    int expr::op_token_process(token_type type, int priority, std::stack<token_type>& stack, std::vector<instruct>& ins)
-    {
-        stack.push(type);
-        return status_ok;
-    }
+
 
     token* expr::convert_infix_to_suffix(token* root)
     {
@@ -145,13 +152,13 @@ namespace iedb
                     suffixQueue.push(node);
                     break;
                 }
-                //遭遇左括号直接入栈
+            //遭遇左括号直接入栈
             case token_type::parenthesis_left:
                 {
                     stack.push(node);
                     break;
                 }
-                //遭遇右括号则一直出栈，直到遇到第一个左括号
+            //遭遇右括号则一直出栈，直到遇到第一个左括号
             case token_type::parenthesis_right:
                 {
                     while (stack.top()->type != token_type::parenthesis_left)
@@ -212,4 +219,52 @@ namespace iedb
         new_root->brother = brother;
         return new_root;
     }
+    int expr::convert_expr_to_instruct(token* expr_root, const table& target_table, std::vector<instruct>& ins)
+    {
+        for (auto node = expr_root; node; node = node->child)
+        {
+            if (node->type == token_type::parenthesis_left || node->type == token_type::parenthesis_right)
+                throw std::runtime_error("parenthesis should not be in expression");
+            auto new_ins = token_to_instruct(*node, target_table);
+            if (new_ins.op == instruct::op_type::error)
+                return static_cast<int>(new_ins.value_int);
+            ins.push_back(new_ins);
+        }
+        ins.emplace_back(instruct::op_type::end, instruct::data_type::Int, 0L);
+        return status_ok;
+    }
+
+    void expr::select_statement_of_star_process(const table& target_table, std::vector<instruct>& ins)
+    {
+        auto count = target_table.get_col_count();
+        for (auto i = 0; i < count;i++)
+        {
+            auto col = target_table.get_col_by_index(i);
+            auto offset = static_cast<int64>(col->line_offset);
+            instruct::data_type type;
+            switch (col->type)
+            {
+            case column_type::Int:
+                {
+                    type = instruct::data_type::Int;
+                    break;
+                }
+            case column_type::Float:
+                {
+                    type = instruct::data_type::Float;
+                    break;
+                }
+                case column_type::text:
+                {
+                    type = instruct::data_type::Text;
+                    break;
+                }
+                default:
+                    throw std::runtime_error("unknown column type");
+            }
+            ins.emplace_back(instruct::op_type::load_col,type,offset);
+            ins.emplace_back(instruct::op_type::end,instruct::data_type::Int,0L);
+        }
+    }
+
 }

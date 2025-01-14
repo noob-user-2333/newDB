@@ -36,7 +36,7 @@ namespace iedb {
     public:
         ~db_data_manager();
         static std::unique_ptr<db_data_manager> open(const char *path);
-        int create_table(table& new_table);
+        int create_table(std::unique_ptr<table> new_table);
         const table* get_table(const std::string & table_name);
         int insert_record(const std::string& table_name,const void* buffer,uint64 size);
         record_iterator get_record_iterator_write_transaction(const char * table_name);

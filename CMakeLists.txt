@@ -18,5 +18,6 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         third-part/sqlite/sqlite3.h
         include/db.h
         src/db.cpp
+        test/test.h
 )
 

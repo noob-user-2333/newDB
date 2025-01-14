@@ -58,13 +58,14 @@ op(A) ::= SLASH(B).     {A=B;}
 op(A) ::= BIT_OR(B).     {A=B;}
 op(A) ::= BIT_AND(B).     {A=B;}
 op(A) ::= PERCENT(B).     {A=B;}
-
-cmp_op(A) ::= MORE(B).     {A=B;}
-cmp_op(A) ::= LESS(B).     {A=B;}
-cmp_op(A) ::= EQUAL(B).     {A=B;}
-cmp_op(A) ::= NOT_EQUAL(B).     {A=B;}
-cmp_op(A) ::= MORE_EQUAL(B).     {A=B;}
-cmp_op(A) ::= LESS_EQUAL(B).     {A=B;}
+op(A) ::= MORE(B).     {A=B;}
+op(A) ::= LESS(B).     {A=B;}
+op(A) ::= EQUAL(B).     {A=B;}
+op(A) ::= NOT_EQUAL(B).     {A=B;}
+op(A) ::= MORE_EQUAL(B).     {A=B;}
+op(A) ::= LESS_EQUAL(B).     {A=B;}
+op(A) ::= AND(B).     {A=B;}
+op(A) ::= OR(B).     {A=B;}
 
 factor(A) ::= factor(B) op(C) item(D). {
     token* temp = B;
@@ -94,13 +95,7 @@ factor(A) ::= factor(B) op(C) PARENTHESIS_LEFT(D) factor(E) PARENTHESIS_RIGHT(F)
 
 
 expr(A) ::= factor(B).{A=B;}
-expr(A) ::= factor(B) cmp_op(C) factor(D). {
-    token*temp = B;
-    while(temp->child) temp = temp->child;
-    temp->child = C;
-    C->child = D;
-    A = B;
-}
+
 
 
 

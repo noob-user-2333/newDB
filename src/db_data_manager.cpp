@@ -97,26 +97,27 @@ namespace iedb {
         sqlite3_finalize(query_stmt);
         return std::unique_ptr<db_data_manager>(new db_data_manager(path, db,map));
     }
-    int db_data_manager::create_table(table&new_table) {
+    int db_data_manager::create_table(std::unique_ptr<table>new_table) {
         static constexpr char create_record_table_sql[] = "CREATE TABLE %s("
                                                           "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                                                           "record blob NOT NULL);";
         static constexpr char insert_table_to_master[] = "INSERT INTO master (name,format) VALUES (?,?);";
         static char buffer[10240];
         //将内容序列化写入到buffer中
-        auto size = table::translate_to_buffer(new_table,buffer);
+        auto size = table::translate_to_buffer(*new_table,buffer);
         // 先向master中插入表定义
         sqlite3_stmt * stmt;
         sqlite3_prepare_v2(db, insert_table_to_master, sizeof(insert_table_to_master), &stmt, nullptr);
-        sqlite3_bind_text(stmt, 1, new_table.get_name().c_str(), new_table.get_name().size(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 1, new_table->get_name().c_str(), new_table->get_name().size(), SQLITE_TRANSIENT);
         sqlite3_bind_blob(stmt, 2, buffer, size, SQLITE_STATIC);
         auto rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE)
             return status_error;
         sqlite3_finalize(stmt);
         // 然后创建保存记录的表
-        sprintf(buffer, create_record_table_sql, new_table.get_name().c_str());
+        sprintf(buffer, create_record_table_sql, new_table->get_name().c_str());
         sqlite3_exec(db, buffer, nullptr, nullptr, nullptr);
+        table_map[new_table->get_name()] = std::move(new_table);
         return status_ok;
     }
 
