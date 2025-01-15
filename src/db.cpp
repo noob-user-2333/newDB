@@ -54,7 +54,8 @@ namespace iedb
                 break;
             case token_type::string:
                 {
-                    memcpy(data, &(value->len), sizeof(value->len));
+                    string_meta meta(value->len,(int)static_cast<uint64>(varLenStart - data));
+                    memcpy(data, &meta, sizeof(meta));
                     memcpy(varLenStart, value->sql + value->offset, value->len);
                     data += 8;
                     varLenStart += value->len;
@@ -151,13 +152,13 @@ namespace iedb
         return reader;
     }
 
-    int db::token_expr_to_instruction(token* root, const table& target_table, std::vector<instruct>& ins)
+    int db::token_expr_to_instruction(token* root, const table& target_table, std::vector<expr::instruct>& ins)
     {
         auto new_root = expr::convert_infix_to_suffix(root);
         return expr::convert_expr_to_instruct(new_root, target_table, ins);
     }
 
-    int db::token_exprs_to_instruction(token* root, const table& target_table, std::vector<instruct>& ins)
+    int db::token_exprs_to_instruction(token* root, const table& target_table, std::vector<expr::instruct>& ins)
     {
         //用于暂存根节点
         static std::queue<token*> queue;
@@ -175,7 +176,7 @@ namespace iedb
                 return status;
             }
             //每个表达式指令结尾添加end
-            ins.push_back(instruct::get_end_instruct());
+            ins.push_back(expr::instruct::get_end_instruct());
         }
         return status_ok;
     }

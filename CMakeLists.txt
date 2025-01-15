@@ -19,5 +19,7 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         include/db.h
         src/db.cpp
         test/test.h
+        src/expr_instruct.cpp
+        src/expr_item.cpp
 )
 

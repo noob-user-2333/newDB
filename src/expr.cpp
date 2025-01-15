@@ -6,25 +6,7 @@
 
 namespace iedb
 {
-    const std::unordered_map<token_type, instruct::op_type> instruct::token_to_op = {
-        {token_type::plus, op_type::add},
-        {token_type::minus, op_type::sub},
-        {token_type::star, op_type::mul},
-        {token_type::slash, op_type::div},
-        {token_type::percent, op_type::mod},
-        {token_type::And, op_type::And},
-        {token_type::Or, op_type::Or},
-        {token_type::less, op_type::less},
-        {token_type::less_equal, op_type::less_equal},
-        {token_type::equal, op_type::equal},
-        {token_type::not_equal, op_type::not_equal},
-        {token_type::more, op_type::more},
-        {token_type::more_equal, op_type::more_equal},
-        {token_type::number_float, op_type::load_imm},
-        {token_type::number_int, op_type::load_imm},
-        {token_type::string, op_type::load_imm},
-        {token_type::name, op_type::load_col}
-    };
+
     const std::unordered_map<token_type, int> expr::op_priority = {
         {token_type::parenthesis_left, 100},
         {token_type::star, 3},
@@ -42,92 +24,59 @@ namespace iedb
         {token_type::Or, 12}
     };
 
-    std::string instruct::to_string()
+    expr::item expr::extract_item_from_record(instruct::op_type type,const void* record_data,int offset)
     {
-        static const std::string map[] = {
-            "add",
-            "sub",
-            "mul",
-            "div",
-            "mod",
-            "And",
-            "Or",
-            "less",
-            "less_equal",
-            "equal",
-            "not_equal",
-            "more",
-            "more_equal",
-            "load_imm",
-            "load_col"
-        };
-        return map[static_cast<int>(op)];
-    }
-    instruct instruct::get_end_instruct()
-    {
-        return {instruct::op_type::end, instruct::data_type::Int, 0L};
-    }
-
-    instruct expr::token_to_instruct(const token& node, const table& target_table)
-    {
-        auto start = node.sql + node.offset;
-        auto len = node.len;
-        auto end = start + len;
-        auto base = 10;
-        char* str_end = nullptr;
-        switch (node.type)
+        auto data = static_cast<const char*>(record_data);
+        switch (type)
         {
-        case token_type::hex:
+        case instruct::op_type::load_col_int:
             {
-                start += 2;
-                base = 16;
+                auto value = *(int64*)(data + offset);
+                return {item::item_type::Int,value};
             }
-        case token_type::number_int:
+        case instruct::op_type::load_col_float:
             {
-                auto value = strtol(start, &str_end, base);
-                assert(str_end == end);
-                return {instruct::op_type::load_imm, instruct::data_type::Int, value};
+                auto value = *(double*)(data + offset);
+                return {item::item_type::Float,value};
             }
-        case token_type::number_float:
+        case instruct::op_type::load_col_string:
             {
-                auto value = std::strtod(start, &str_end);
-                assert(str_end == end);
-                return {instruct::op_type::load_imm, instruct::data_type::Float, value};
-            }
-        case token_type::name:
-            {
-                auto col = target_table.get_col_by_name(node.to_string());
-                if (col == nullptr)
-                    return {
-                        instruct::op_type::error, instruct::data_type::Int, static_cast<long>(status_not_find_column)
-                    };
-                int64 offset = col->line_offset;
-                instruct::op_type op = instruct::op_type::load_col;
-                instruct::data_type data_type;
-                //根据列类型决定操作
-                switch (col->type)
-                {
-                case column_type::Int:
-                    return {op, instruct::data_type::Int, offset};
-                case column_type::text:
-                    return {op, instruct::data_type::Text, offset};
-                case column_type::Float:
-                    return {op, instruct::data_type::Float, offset};
-                default:
-                    throw std::runtime_error("should not happen in expr::convert_token_to_instruct");
-                }
-                return {instruct::op_type::error, instruct::data_type::Int, static_cast<long>(status_error)};
+                auto meta = (uint32*)(data + offset);
+                auto size = meta[0];
+                auto value_offset = meta[1];
+                return {item::item_type::String,size,data + value_offset};
             }
         default:
             {
-                //此处用于处理运算符
-                auto it = instruct::token_to_op.find(node.type);
-                if (it != instruct::token_to_op.end())
-                    return {it->second, instruct::data_type::Int, 0L};
-                throw std::runtime_error("should never happen for token_to_imm_instruct");
+                throw std::runtime_error("Unsupported instruct type");
+            }
+        }
+
+
+
+    }
+
+    expr::item expr::extract_item_from_imm_instruct(instruct& ins)
+    {
+        switch (ins.op)
+        {
+        case instruct::op_type::load_imm_int:
+            {
+                return {item::item_type::Int,ins.value_int};
+            }
+        case instruct::op_type::load_imm_float:
+            {
+                return {item::item_type::Float,ins.value_float};
+            }
+        default:
+            {
+                throw std::runtime_error("Unsupported instruct type");
             }
         }
     }
+
+
+
 
 
 
@@ -230,7 +179,7 @@ namespace iedb
                 return static_cast<int>(new_ins.value_int);
             ins.push_back(new_ins);
         }
-        ins.emplace_back(instruct::op_type::end, instruct::data_type::Int, 0L);
+        ins.emplace_back(instruct::op_type::end, 0L);
         return status_ok;
     }
 
@@ -241,30 +190,43 @@ namespace iedb
         {
             auto col = target_table.get_col_by_index(i);
             auto offset = static_cast<int64>(col->line_offset);
-            instruct::data_type type;
+            instruct::op_type type;
             switch (col->type)
             {
             case column_type::Int:
                 {
-                    type = instruct::data_type::Int;
+                    type = instruct::op_type::load_col_int;
                     break;
                 }
             case column_type::Float:
                 {
-                    type = instruct::data_type::Float;
+                    type = instruct::op_type::load_col_float;
                     break;
                 }
                 case column_type::text:
                 {
-                    type = instruct::data_type::Text;
+                    type = instruct::op_type::load_col_string;
                     break;
                 }
                 default:
                     throw std::runtime_error("unknown column type");
             }
-            ins.emplace_back(instruct::op_type::load_col,type,offset);
-            ins.emplace_back(instruct::op_type::end,instruct::data_type::Int,0L);
+            ins.emplace_back(type,offset);
+            ins.emplace_back(instruct::get_end_instruct());
         }
+    }
+    int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset, std::stack<item>& stack, const void* record_data)
+    {
+        auto data = static_cast<const char*>(record_data);
+        for (auto offset = start_ins_offset;ins[offset].op!= instruct::op_type::end; offset++)
+        {
+            auto& current_ins = ins[offset];
+            switch (current_ins.op)
+            {
+            }
+
+        }
+
     }
 
 }

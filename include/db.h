@@ -15,25 +15,31 @@ namespace iedb
     public:
         struct reader
         {
-            std::vector<instruct> select;
-            std::vector<instruct> where;
-            std::vector<instruct> order_by;
-            std::vector<instruct> group;
-            std::vector<instruct> limit;
+            std::vector<expr::instruct> select;
+            std::vector<expr::instruct> where;
+            std::vector<expr::instruct> order_by;
+            std::vector<expr::instruct> group;
+            std::vector<expr::instruct> limit;
             const table* target_table;
             int status_code;
             reader(const table* target_table,int status):target_table(target_table),status_code(status){}
         };
 
     private:
+        struct string_meta
+        {
+            uint32 size;
+            uint32 offset;
+            string_meta(uint32 size,uint32 offset):size(size),offset(offset){}
+        };
         std::unique_ptr<db_data_manager> data_manager;
         explicit db(std::unique_ptr<db_data_manager>& data_manager) : data_manager(std::move(data_manager)) {}
         static uint64 write_statement_to_buffer(const parse_result & result,const table&target_table,void * buffer);
         int create_statement_process(parse_result & result);
         int insert_statement_process(parse_result & result);
         std::unique_ptr<reader> query_statement_process(parse_result & result);
-        static int token_expr_to_instruction(token* root,const table&target_table,std::vector<instruct>&ins);
-        static int token_exprs_to_instruction(token* root,const table&target_table,std::vector<instruct>&ins);
+        static int token_expr_to_instruction(token* root,const table&target_table,std::vector<expr::instruct>&ins);
+        static int token_exprs_to_instruction(token* root,const table&target_table,std::vector<expr::instruct>&ins);
     public:
 
         static std::unique_ptr<db> open(const char *path);
