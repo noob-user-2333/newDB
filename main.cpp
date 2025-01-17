@@ -2,7 +2,7 @@
 #include "db_data_manager.h"
 #include "parser.h"
 #include "test/test.h"
-#include <chrono>
+#include "test/timer.h"
 #include <iostream>
 #include <ostream>
 using namespace iedb;
@@ -12,39 +12,31 @@ constexpr char create[] = "CREATE TABLE test("
                           "score float,"
                           "name text);";
 constexpr char insert[] = "INSERT INTO test VALUES (0x12,4.345,'gooddafsafsdfsdf');";
-constexpr char query[] = "SELECT * FROM test where  1 > 2 < 3 and 2 -4 > 5 or 3 - 2 * 6 < 5 > 1;";
+constexpr char query[] = "SELECT * FROM Games where  gameId + attendance - (5 + 3) /2   > 40400753;";
 
-void sqlite_test(std::vector<std::string> & sqls)
-{
-    sqlite3 *db;
-    auto status = sqlite3_open("/dev/shm/sqlite.db",&db);
-    auto start = std::chrono::high_resolution_clock::now();
-    for (auto & sql:sqls)
-    {
-        sqlite3_exec(db,sql.c_str(),nullptr,nullptr,nullptr);
-    }// 获取结束时间
-    auto end = std::chrono::high_resolution_clock::now();
-    // 计算耗时
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << "代码执行耗时: " << duration.count() << " 微秒" << std::endl;
-    sqlite3_close_v2(db);
-}
 
 auto num =
     1.0;
+sqlite3 *sqlite = nullptr;
+sqlite3_stmt * stmt;
 int main() {
-    auto data = (char*)&num;
-    for (auto i = 0; i < 8;i++)
-        printf("%d ",data[i]);
-    // auto db = db::open(path);
-    // auto sqls = test::get_sql_from_file("/dev/shm/Games.sql");
-    // auto start = std::chrono::high_resolution_clock::now();
-    // for (auto&sql:sqls)
-    //     db->sql_execute_without_reader(sql.c_str());
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    // std::cout << "代码执行耗时: " << duration.count() << " 微秒" << std::endl;
-    // sqlite_test(sqls);
+    auto status = sqlite3_open("/dev/shm/sqlite.db", &sqlite);
+    status = sqlite3_prepare(sqlite,query, sizeof(query), &stmt, nullptr);
+    auto db = db::open(path);
+    // for (auto& sql : sqls)
+        // db->sql_execute_without_reader(sql.c_str());
+    auto reader = db->sql_execute(query);
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        int64 num;
+        reader->next();
+        auto sqlite_num = sqlite3_column_int64(stmt,0);
+        status = reader->get_int_value(0, num);
+        if (sqlite_num != num)
+        {
+            printf("error: sqlite(%lld)!= iedb(%lld)\n", sqlite_num, num);
+        }
+    }
     return 0;
 }

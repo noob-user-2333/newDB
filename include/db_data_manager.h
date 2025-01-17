@@ -39,7 +39,7 @@ namespace iedb {
         int create_table(std::unique_ptr<table> new_table);
         const table* get_table(const std::string & table_name);
         int insert_record(const std::string& table_name,const void* buffer,uint64 size);
-        record_iterator get_record_iterator_write_transaction(const char * table_name);
+        std::unique_ptr<record_iterator> get_record_iterator_write_transaction(const char * table_name);
     };
 }
 

@@ -155,7 +155,7 @@ namespace iedb {
     }
 
 
-    record_iterator db_data_manager::get_record_iterator_write_transaction(const char *table_name) {
+    std::unique_ptr<record_iterator> db_data_manager::get_record_iterator_write_transaction(const char *table_name) {
         static char buffer[10240];
         sqlite3_stmt *query_stmt;
         const auto len = sprintf(buffer, "SELECT id,record FROM %s;", table_name);
@@ -165,7 +165,7 @@ namespace iedb {
             sqlite3_close(db);
             throw std::runtime_error("无法正常执行查询操作");
             }
-            return {db,query_stmt,table_name};
+            return std::make_unique<record_iterator>(db,query_stmt,table_name);
     }
 
 }

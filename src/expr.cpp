@@ -24,8 +24,9 @@ namespace iedb
         {token_type::Or, 12}
     };
 
-    expr::item expr::extract_item_from_record(instruct::op_type type,const void* record_data,int offset)
+    expr::item expr::extract_item_from_record(const instruct & ins,const void* record_data,int offset)
     {
+        auto type = ins.op;
         auto data = static_cast<const char*>(record_data);
         switch (type)
         {
@@ -56,7 +57,7 @@ namespace iedb
 
     }
 
-    expr::item expr::extract_item_from_imm_instruct(instruct& ins)
+    expr::item expr::extract_item_from_imm_instruct(const instruct& ins)
     {
         switch (ins.op)
         {
@@ -179,7 +180,6 @@ namespace iedb
                 return static_cast<int>(new_ins.value_int);
             ins.push_back(new_ins);
         }
-        ins.emplace_back(instruct::op_type::end, 0L);
         return status_ok;
     }
 
@@ -218,15 +218,145 @@ namespace iedb
     int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset, std::stack<item>& stack, const void* record_data)
     {
         auto data = static_cast<const char*>(record_data);
-        for (auto offset = start_ins_offset;ins[offset].op!= instruct::op_type::end; offset++)
+        auto offset = 0;
+        for (offset = start_ins_offset;ins[offset].op!= instruct::op_type::end; offset++)
         {
             auto& current_ins = ins[offset];
             switch (current_ins.op)
             {
+                case instruct::op_type::load_col_int:
+                case instruct::op_type::load_col_float:
+                case instruct::op_type::load_col_string:
+                    {
+                        auto item = extract_item_from_record(current_ins, record_data, static_cast<int>(current_ins.value_int));
+                        stack.push(item);
+                        break;
+                    }
+                case instruct::op_type::load_imm_int:
+                case instruct::op_type::load_imm_float:
+                    {
+                        auto item = extract_item_from_imm_instruct(current_ins);
+                        stack.push(item);
+                        break;
+                    }
+                case instruct::op_type::add:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 + item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::sub:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 - item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::mul:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 * item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::div:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        if (item2.value_float == 0.0)
+                            throw std::runtime_error("division by zero");
+                        const auto item3 = item1 / item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::mod:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 % item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::more:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 > item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::less:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 < item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::equal:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 == item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::more_equal:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 >= item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::less_equal:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1 <= item2;
+                        stack.push(item3);
+                        break;
+                    }
+                case instruct::op_type::not_equal:
+                    {
+                        const auto item2 = stack.top();
+                        stack.pop();
+                        const auto item1 = stack.top();
+                        stack.pop();
+                        const auto item3 = item1!= item2;
+                        stack.push(item3);
+                        break;
+                    }
+            default:
+                throw std::runtime_error("should never happen for instruct");
             }
 
         }
-
+        return offset;
     }
 
 }

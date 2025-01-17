@@ -46,7 +46,8 @@ namespace iedb {
     static constexpr int status_invalid_data_type = 15;
     static constexpr int status_invalid_sql = 16;
     static constexpr int status_file_read_complete = 17;
-
+    static constexpr int status_error_data_type = 18;
+    static constexpr int status_out_of_range = 19;
     static constexpr int page_size = 32 * 1024;
     static constexpr uint64 current_format_version = 0x0001000;
 

@@ -4,6 +4,8 @@
 
 #ifndef DB_H
 #define DB_H
+#include <variant>
+
 #include "db_data_manager.h"
 #include "expr.h"
 #include "parser.h"
@@ -13,16 +15,25 @@ namespace iedb
     class db
     {
     public:
-        struct reader
+        class reader
         {
+        private:
+            using col_data_type =  std::variant<int64,double,std::string>;
+            std::vector<col_data_type> values;
+        public:
             std::vector<expr::instruct> select;
             std::vector<expr::instruct> where;
             std::vector<expr::instruct> order_by;
             std::vector<expr::instruct> group;
             std::vector<expr::instruct> limit;
             const table* target_table;
+            std::unique_ptr<record_iterator> iterator;
             int status_code;
             reader(const table* target_table,int status):target_table(target_table),status_code(status){}
+            bool next();
+            int get_int_value(uint32 index,int64& out_value) const;
+            int get_float_value(uint32 index,double& out_value) const;
+            int get_string_value(uint32 index,std::string&value) const;
         };
 
     private:

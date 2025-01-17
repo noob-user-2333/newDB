@@ -54,7 +54,7 @@ namespace iedb
                 break;
             case token_type::string:
                 {
-                    string_meta meta(value->len,(int)static_cast<uint64>(varLenStart - data));
+                    string_meta meta(value->len,(int)((uint64)(varLenStart) - (uint64)(buffer)));
                     memcpy(data, &meta, sizeof(meta));
                     memcpy(varLenStart, value->sql + value->offset, value->len);
                     data += 8;
@@ -113,9 +113,7 @@ namespace iedb
         auto size = write_statement_to_buffer(result, *(target_table), buffer);
         return data_manager->insert_record(target_table->get_name(), buffer, size);
     }
-
-    /*  TODO:当前仅支持where和select语句
-     */
+    //TODO:当前仅提供对where和select子句的支持
     std::unique_ptr<db::reader> db::query_statement_process(parse_result& result)
     {
         //尝试获取对应表
@@ -128,7 +126,7 @@ namespace iedb
         }
         // 构建查询结果
         auto reader = std::unique_ptr<db::reader>(new db::reader(target_table, status_ok));
-        //首先解决select为*的特殊情况
+        //单独解决select，因为其存在为*的特殊情况
         if (result.master->type == token_type::star)
         {
             expr::select_statement_of_star_process(*target_table, reader->select);
@@ -142,14 +140,23 @@ namespace iedb
                 return reader;
             }
         }
-        //处理where子句
-        auto status = token_exprs_to_instruction(result.filter, *target_table, reader->where);
-        if (status != status_ok)
+        //将其他子句表达式放置于数组，遍历数组实现对表达式的同一翻译
+        token* expr_array[] = {result.filter,result.group,result.order, result.limit};
+        std::vector<expr::instruct>* ins_array[] = {&reader->where,&reader->group,&reader->order_by,&reader->limit};
+        for (auto i = 0; i < std::size(expr_array); ++i)
         {
-            reader->status_code = status;
-            return reader;
+            auto expr = expr_array[i];
+            auto ins = ins_array[i];
+            auto status = token_exprs_to_instruction(expr, *target_table, *ins);
+            if (status != status_ok)
+            {
+                reader->status_code = status;
+                return reader;
+            }
         }
-        return reader;
+;
+        reader->iterator = data_manager->get_record_iterator_write_transaction(target_table->get_name().c_str());
+        return std::move(reader);
     }
 
     int db::token_expr_to_instruction(token* root, const table& target_table, std::vector<expr::instruct>& ins)

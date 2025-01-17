@@ -112,8 +112,8 @@ namespace iedb
     private:
         static const std::unordered_map<token_type, int> op_priority;
         static instruct token_to_instruct(const token& node, const table& target_table);
-        static item extract_item_from_record(instruct::op_type type,const void* record_data,int offset);
-        static item extract_item_from_imm_instruct(instruct & ins);
+        static item extract_item_from_record(const instruct & ins,const void* record_data,int offset);
+        static item extract_item_from_imm_instruct(const instruct & ins);
     public:
         //传入中缀表达式，返回处理后的后缀表达式的第一个元素,其继承传入的根节点的兄弟节点
         static token* convert_infix_to_suffix(token* root);
