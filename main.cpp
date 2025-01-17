@@ -1,3 +1,5 @@
+#include <any>
+
 #include "db.h"
 #include "db_data_manager.h"
 #include "parser.h"
@@ -38,5 +40,8 @@ int main() {
             printf("error: sqlite(%lld)!= iedb(%lld)\n", sqlite_num, num);
         }
     }
+    std::any a = "1";
+    std::string b = "a";
+    printf("%lu %lu",sizeof(a),sizeof(b));
     return 0;
 }

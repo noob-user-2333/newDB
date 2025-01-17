@@ -56,7 +56,8 @@ namespace iedb
             }
         case token_type::name:
             {
-                auto col = target_table.get_col_by_name(node.to_string());
+                auto index = target_table.get_col_index_by_name(node.to_string());
+                auto col = target_table.get_col_by_index(index);
                 if (col == nullptr)
                     return {
                         instruct::op_type::error, static_cast<long>(status_not_find_column)

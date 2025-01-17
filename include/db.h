@@ -4,7 +4,6 @@
 
 #ifndef DB_H
 #define DB_H
-#include <variant>
 
 #include "db_data_manager.h"
 #include "expr.h"

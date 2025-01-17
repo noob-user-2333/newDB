@@ -32,8 +32,10 @@ namespace iedb {
 
     table::table(std::string &name, std::vector<col_def> &cols) : name(std::move(name)), cols(std::move(cols)),
                                                                   name_to_col(),fixed_len_data_size() {
+        auto i = 0;
         for (auto &col: this->cols) {
-            name_to_col[col.name] = &col;
+            name_to_col[col.name] = i;
+            i++;
         }
         fixed_len_data_size = this->cols.back().line_offset + get_data_type_size(this->cols.back().type) * this->cols.back().element_count;
     }
@@ -106,13 +108,10 @@ namespace iedb {
         return fixed_len_data_size;
     }
 
-    const col_def *table::get_col_by_index(int index) const {
-        return &cols.at(index);
-    }
-    const col_def *table::get_col_by_name(const std::string &name)const  {
+    int table::get_col_index_by_name(const std::string &name)const  {
         auto it = name_to_col.find(name);
         if (it == name_to_col.end())
-            return nullptr;
+            return -1;
         return it->second;
     }
     int table::get_col_count() const {
@@ -134,13 +133,91 @@ namespace iedb {
         fixed_len_data_size += get_data_type_size(type) * element_count;
         return status_ok;
     }
-    // int table::remove_column(const std::string &name) {
-    //     auto it = name_to_col.find(name);
-    //     if (it == name_to_col.end())
-    //         return status_not_find_column;
-    //
-    //
-    // }
+
+    std::unique_ptr<row> table::load_row_data_from_record(const void* record, int size) const
+    {
+        auto data = static_cast<const char*>(record);
+        auto col_count = cols.size();
+        auto row_data = std::make_unique<row>(col_count);
+        for (auto i = 0; i< col_count;i++)
+        {
+            auto& col = cols[i];
+            auto start = data + col.line_offset;
+            int64 offset = col.line_offset;
+            switch (col.type)
+            {
+                case column_type::Int:
+                    {
+                        (*row_data)[i] = *(int64*)start;
+                        offset += sizeof(int64);
+                        break;
+                    }
+                case column_type::Float:
+                    {
+                        (*row_data)[i] = *(double*)start;
+                        offset += sizeof(double);
+                        break;
+                    }
+                case column_type::text:
+                    {
+                        //先获取长度和偏移量
+                        auto meta = (uint32*)data;
+                        auto str_size = meta[0];
+                        auto str_offset = meta[1];
+                        (*row_data)[i] = std::string(data + str_offset, str_size);
+                        offset = str_size + str_offset;
+                        break;
+                    }
+                default:
+                    throw std::runtime_error("should not happen in table::load_row_data_from_record");
+            }
+            assert(offset <= size);
+        }
+        return std::move(row_data);
+    }
+
+    int table::load_row_data_from_record(row& row_data, const void* record, int size) const
+    {
+        auto col_count = row_data.get_column_count();
+        if ( col_count != size)
+            return status_invalid_argument;
+        auto data = static_cast<const char*>(record);
+        for (auto i = 0; i< col_count;i++)
+        {
+            auto& col = cols[i];
+            auto start = data + col.line_offset;
+            int64 offset = col.line_offset;
+            switch (col.type)
+            {
+                case column_type::Int:
+                    {
+                        row_data[i] = *(int64*)start;
+                        offset += sizeof(int64);
+                        break;
+                    }
+                case column_type::Float:
+                    {
+                        row_data[i] = *(double*)start;
+                        offset += sizeof(double);
+                        break;
+                    }
+                case column_type::text:
+                    {
+                        //先获取长度和偏移量
+                        auto meta = (uint32*)data;
+                        auto str_size = meta[0];
+                        auto str_offset = meta[1];
+                        row_data[i] = std::string(data + str_offset, str_size);
+                        offset = str_size + str_offset;
+                        break;
+                    }
+                default:
+                    throw std::runtime_error("should not happen in table::load_row_data_from_record");
+            }
+            assert(offset <= size);
+        }
+        return status_ok;
+    }
 
 }
 

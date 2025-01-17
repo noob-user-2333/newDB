@@ -15,6 +15,7 @@
 #include <queue>
 #include <stack>
 #include <stdexcept>
+#include <variant>
 namespace iedb {
     using int8 = char;
     using uint8 = unsigned char;
