@@ -24,61 +24,6 @@ namespace iedb
         {token_type::Or, 12}
     };
 
-    expr::item expr::extract_item_from_record(const instruct & ins,const void* record_data,int offset)
-    {
-        auto type = ins.op;
-        auto data = static_cast<const char*>(record_data);
-        switch (type)
-        {
-        case instruct::op_type::load_col_int:
-            {
-                auto value = *(int64*)(data + offset);
-                return {item::item_type::Int,value};
-            }
-        case instruct::op_type::load_col_float:
-            {
-                auto value = *(double*)(data + offset);
-                return {item::item_type::Float,value};
-            }
-        case instruct::op_type::load_col_string:
-            {
-                auto meta = (uint32*)(data + offset);
-                auto size = meta[0];
-                auto value_offset = meta[1];
-                return {item::item_type::String,size,data + value_offset};
-            }
-        default:
-            {
-                throw std::runtime_error("Unsupported instruct type");
-            }
-        }
-
-
-
-    }
-
-    expr::item expr::extract_item_from_imm_instruct(const instruct& ins)
-    {
-        switch (ins.op)
-        {
-        case instruct::op_type::load_imm_int:
-            {
-                return {item::item_type::Int,ins.value_int};
-            }
-        case instruct::op_type::load_imm_float:
-            {
-                return {item::item_type::Float,ins.value_float};
-            }
-        default:
-            {
-                throw std::runtime_error("Unsupported instruct type");
-            }
-        }
-    }
-
-
-
-
 
 
 
@@ -177,7 +122,7 @@ namespace iedb
                 throw std::runtime_error("parenthesis should not be in expression");
             auto new_ins = token_to_instruct(*node, target_table);
             if (new_ins.op == instruct::op_type::error)
-                return static_cast<int>(new_ins.value_int);
+                return (int)std::get<int64>(new_ins.data);
             ins.push_back(new_ins);
         }
         return status_ok;
@@ -186,57 +131,30 @@ namespace iedb
     void expr::select_statement_of_star_process(const table& target_table, std::vector<instruct>& ins)
     {
         auto count = target_table.get_col_count();
-        for (auto i = 0; i < count;i++)
+        for (auto i = 0L; i < count;i++)
         {
-            auto col = target_table.get_col_by_index(i);
-            auto offset = static_cast<int64>(col->line_offset);
-            instruct::op_type type;
-            switch (col->type)
-            {
-            case column_type::Int:
-                {
-                    type = instruct::op_type::load_col_int;
-                    break;
-                }
-            case column_type::Float:
-                {
-                    type = instruct::op_type::load_col_float;
-                    break;
-                }
-                case column_type::text:
-                {
-                    type = instruct::op_type::load_col_string;
-                    break;
-                }
-                default:
-                    throw std::runtime_error("unknown column type");
-            }
-            ins.emplace_back(type,offset);
+            ins.emplace_back(instruct::op_type::load_col,i);
             ins.emplace_back(instruct::get_end_instruct());
         }
     }
-    int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset, std::stack<item>& stack, const void* record_data)
+    int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset,row& row_data, column_data_type& out_result)
     {
-        auto data = static_cast<const char*>(record_data);
+        static std::stack<const column_data_type> stack;
         auto offset = 0;
         for (offset = start_ins_offset;ins[offset].op!= instruct::op_type::end; offset++)
         {
             auto& current_ins = ins[offset];
             switch (current_ins.op)
             {
-                case instruct::op_type::load_col_int:
-                case instruct::op_type::load_col_float:
-                case instruct::op_type::load_col_string:
+                case instruct::op_type::load_col:
                     {
-                        auto item = extract_item_from_record(current_ins, record_data, static_cast<int>(current_ins.value_int));
-                        stack.push(item);
+                        auto index = static_cast<int>(std::get<int64>(current_ins.data));
+                        stack.push(row_data[index]);
                         break;
                     }
-                case instruct::op_type::load_imm_int:
-                case instruct::op_type::load_imm_float:
+                case instruct::op_type::load_imm:
                     {
-                        auto item = extract_item_from_imm_instruct(current_ins);
-                        stack.push(item);
+                        stack.push(current_ins.data);
                         break;
                     }
                 case instruct::op_type::add:

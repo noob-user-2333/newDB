@@ -19,5 +19,6 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         src/table.cpp
         test/timer.h
         src/db_reader.cpp
+        src/table_row.cpp
 )
 

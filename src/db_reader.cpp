@@ -7,66 +7,65 @@ namespace iedb
 {
     bool db::reader::next()
     {
-        static std::stack<expr::item> stack;
-        while (iterator->next())
-        {
-            auto record_size = iterator->get_record_size();
-            auto record = iterator->get_record_data();
-            //使用where子句对该记录进行判断
-            auto offset = 0;
-            auto vec_size = where.size();
-            auto satisfy = true;
-            while (offset < vec_size)
-            {
-                offset = expr::expr_execute(where, offset, stack, record);
-                offset++;
-                auto top = stack.top();
-                stack.pop();
-                if (top.value_int == 0)
-                {
-                    satisfy = false;
-                    break;
-                }
-                assert(stack.empty());
-            }
-            if (satisfy)
-            {
-                //开始提取数据
-                offset = 0;
-                vec_size = select.size();
-                values.clear();
-                while (offset < vec_size)
-                {
-                    offset = expr::expr_execute(select, offset, stack, record);
-                    offset++;
-                    auto top = stack.top();
-                    stack.pop();
-                    //开始获取数据
-                    switch (top.type)
-                    {
-                    case expr::item::item_type::Float:
-                        {
-                            values.emplace_back(top.value_float);
-                            break;
-                        }
-                    case expr::item::item_type::Int:
-                        {
-                            values.emplace_back(top.value_int);
-                            break;
-                        }
-                    case expr::item::item_type::String:
-                        {
-                            values.emplace_back(std::string(top.value_string, top.len));
-                            break;
-                        }
-                    default:
-                        throw std::runtime_error("unsupported type for select");
-                    }
-                    assert(stack.empty());
-                }
-                return true;
-            }
-        }
+        // while (iterator->next())
+        // {
+        //     auto record_size = iterator->get_record_size();
+        //     auto record = iterator->get_record_data();
+        //     //使用where子句对该记录进行判断
+        //     auto offset = 0;
+        //     auto vec_size = where.size();
+        //     auto satisfy = true;
+        //     while (offset < vec_size)
+        //     {
+        //         offset = expr::expr_execute(where, offset, stack, record);
+        //         offset++;
+        //         auto top = stack.top();
+        //         stack.pop();
+        //         if (top.value_int == 0)
+        //         {
+        //             satisfy = false;
+        //             break;
+        //         }
+        //         assert(stack.empty());
+        //     }
+        //     if (satisfy)
+        //     {
+        //         //开始提取数据
+        //         offset = 0;
+        //         vec_size = select.size();
+        //         values.clear();
+        //         while (offset < vec_size)
+        //         {
+        //             offset = expr::expr_execute(select, offset, stack, record);
+        //             offset++;
+        //             auto top = stack.top();
+        //             stack.pop();
+        //             //开始获取数据
+        //             switch (top.type)
+        //             {
+        //             case expr::item::item_type::Float:
+        //                 {
+        //                     values.emplace_back(top.value_float);
+        //                     break;
+        //                 }
+        //             case expr::item::item_type::Int:
+        //                 {
+        //                     values.emplace_back(top.value_int);
+        //                     break;
+        //                 }
+        //             case expr::item::item_type::String:
+        //                 {
+        //                     values.emplace_back(std::string(top.value_string, top.len));
+        //                     break;
+        //                 }
+        //             default:
+        //                 throw std::runtime_error("unsupported type for select");
+        //             }
+        //             assert(stack.empty());
+        //         }
+        //         return true;
+        //     }
+        // }
         return false;
     }
 

@@ -19,10 +19,10 @@ namespace iedb
         {token_type::not_equal, op_type::not_equal},
         {token_type::more, op_type::more},
         {token_type::more_equal, op_type::more_equal},
-        {token_type::number_float, op_type::load_imm_float},
-        {token_type::number_int, op_type::load_imm_int},
-        {token_type::string, op_type::load_imm_string},
-        {token_type::name, op_type::load_col_int}
+        {token_type::number_float, op_type::load_imm},
+        {token_type::number_int, op_type::load_imm},
+        {token_type::string, op_type::load_imm},
+        {token_type::name, op_type::load_col}
     };
     expr::instruct expr::instruct::get_end_instruct()
     {
@@ -46,36 +46,20 @@ namespace iedb
             {
                 auto value = strtol(start, &str_end, base);
                 assert(str_end == end);
-                return {instruct::op_type::load_imm_int,value};
+                return {instruct::op_type::load_imm,value};
             }
         case token_type::number_float:
             {
                 auto value = std::strtod(start, &str_end);
                 assert(str_end == end);
-                return {instruct::op_type::load_imm_float, value};
+                return {instruct::op_type::load_imm, value};
             }
         case token_type::name:
             {
                 auto index = target_table.get_col_index_by_name(node.to_string());
-                auto col = target_table.get_col_by_index(index);
-                if (col == nullptr)
-                    return {
-                        instruct::op_type::error, static_cast<long>(status_not_find_column)
-                    };
-                int64 offset = col->line_offset;
-                //根据列类型决定操作
-                switch (col->type)
-                {
-                case column_type::Int:
-                    return {instruct::op_type::load_col_int, offset};
-                case column_type::text:
-                    return {instruct::op_type::load_col_string, offset};
-                case column_type::Float:
-                    return {instruct::op_type::load_col_float, offset};
-                default:
-                    throw std::runtime_error("should not happen in expr::convert_token_to_instruct");
-                }
-                return {instruct::op_type::error, static_cast<long>(status_error)};
+                if (index == -1)
+                    return {instruct::op_type::error, static_cast<long>(status_not_find_column)};
+                return {instruct::op_type::load_col, static_cast<long>(index)};
             }
         default:
             {

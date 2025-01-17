@@ -35,85 +35,27 @@ namespace iedb
                 not_equal,
                 more,
                 more_equal,
-                load_imm_int,
-                load_imm_float,
-                load_imm_string,
-                load_col_int,
-                load_col_float,
-                load_col_string,
+                load_imm,
+                load_col,
                 end
             };
             static const std::unordered_map<token_type, op_type> token_to_op;
             op_type op;
-            union
-            {
-                long value_int;
-                double value_float;
-                long col_offset;
-            };
-
+            column_data_type data;
             instruct() = delete;
-
-            instruct(op_type op, long value) : op(op), value_int(value)
-            {
-            }
-
-            instruct(op_type op, double value) : op(op), value_float(value)
-            {
-            }
+            explicit instruct(op_type op) : op(op),data(0){}
+            instruct(op_type op, long value) : op(op),data(value){}
+            instruct(op_type op, double value) : op(op),data(value){}
+            instruct(op_type op, const char *start,int len) : op(op), data(std::string(start,len)){}
 
             static instruct get_end_instruct();
         };
 
-        struct item
-        {
-            enum class item_type
-            {
-                error,
-                Int,
-                Float,
-                String
-            };
 
-            item_type type;
-            uint32 len;
-            union
-            {
-                int64 value_int;
-                double value_float;
-                const char* value_string;
-            };
-
-            item(item_type type, int64 value) : type(type),len(8), value_int(value)
-            {
-            }
-
-            item(item_type type, double value) : type(type),len(8), value_float(value)
-            {
-            }
-
-            item(item_type type,uint32 len,const char* value) : type(type),len(len),value_string(value)
-            {
-            }
-
-            item operator+(const item& other) const;
-            item operator-(const item& other) const;
-            item operator*(const item& other) const;
-            item operator/(const item& other) const;
-            item operator%(const item& other) const;
-            item operator>(const item& other) const;
-            item operator<(const item& other) const;
-            item operator<=(const item& other) const;
-            item operator==(const item& other) const;
-            item operator!=(const item& other) const;
-            item operator>=(const item& other) const;
-        };
 
     private:
         static const std::unordered_map<token_type, int> op_priority;
         static instruct token_to_instruct(const token& node, const table& target_table);
-        static item extract_item_from_record(const instruct & ins,const void* record_data,int offset);
-        static item extract_item_from_imm_instruct(const instruct & ins);
     public:
         //传入中缀表达式，返回处理后的后缀表达式的第一个元素,其继承传入的根节点的兄弟节点
         static token* convert_infix_to_suffix(token* root);
@@ -122,8 +64,7 @@ namespace iedb
         //生成对指定表中的每一列进行方位的 vector<ins> ,用于处理select子句为*的情况
         static void select_statement_of_star_process(const table& target_table, std::vector<instruct>& ins);
         //传入生成的表达式指令数组和起始指令偏移量、运算栈、数据，当遇到end指令后运算结束
-        static int expr_execute(const std::vector<instruct>& ins, int start_ins_offset, std::stack<item>& stack,
-                                const void* record_data);
+        static int expr_execute(const std::vector<instruct>& ins, int start_ins_offset,row & row_data, column_data_type & out_result);
     };
 }
 
