@@ -7,7 +7,7 @@ namespace iedb
 {
     const std::unordered_map<token_type, expr::instruct::op_type> expr::instruct::token_to_op = {
         {token_type::plus, op_type::add},
-        {token_type::minus, op_type::sub},
+        {token_type::minus, op_type::minus},
         {token_type::star, op_type::mul},
         {token_type::slash, op_type::div},
         {token_type::percent, op_type::mod},

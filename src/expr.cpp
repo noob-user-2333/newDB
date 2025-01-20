@@ -6,7 +6,6 @@
 
 namespace iedb
 {
-
     const std::unordered_map<token_type, int> expr::op_priority = {
         {token_type::parenthesis_left, 100},
         {token_type::star, 3},
@@ -23,8 +22,6 @@ namespace iedb
         {token_type::And, 11},
         {token_type::Or, 12}
     };
-
-
 
 
     token* expr::convert_infix_to_suffix(token* root)
@@ -114,6 +111,7 @@ namespace iedb
         new_root->brother = brother;
         return new_root;
     }
+
     int expr::convert_expr_to_instruct(token* expr_root, const table& target_table, std::vector<instruct>& ins)
     {
         for (auto node = expr_root; node; node = node->child)
@@ -131,150 +129,171 @@ namespace iedb
     void expr::select_statement_of_star_process(const table& target_table, std::vector<instruct>& ins)
     {
         auto count = target_table.get_col_count();
-        for (auto i = 0L; i < count;i++)
+        for (auto i = 0L; i < count; i++)
         {
-            ins.emplace_back(instruct::op_type::load_col,i);
+            ins.emplace_back(instruct::op_type::load_col, i);
             ins.emplace_back(instruct::get_end_instruct());
         }
     }
-    int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset,row& row_data, column_data_type& out_result)
+
+    int expr::expr_execute(const std::vector<instruct>& ins, int start_ins_offset, row& row_data,
+                           column_data_type& out_result)
     {
-        static std::stack<const column_data_type> stack;
+        static std::stack<column_data_type> stack;
         auto offset = 0;
-        for (offset = start_ins_offset;ins[offset].op!= instruct::op_type::end; offset++)
+        column_data_type item3;
+        for (offset = start_ins_offset; ins[offset].op != instruct::op_type::end; offset++)
         {
             auto& current_ins = ins[offset];
             switch (current_ins.op)
             {
-                case instruct::op_type::load_col:
-                    {
-                        auto index = static_cast<int>(std::get<int64>(current_ins.data));
-                        stack.push(row_data[index]);
-                        break;
-                    }
-                case instruct::op_type::load_imm:
-                    {
-                        stack.push(current_ins.data);
-                        break;
-                    }
-                case instruct::op_type::add:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 + item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::sub:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 - item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::mul:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 * item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::div:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        if (item2.value_float == 0.0)
-                            throw std::runtime_error("division by zero");
-                        const auto item3 = item1 / item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::mod:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 % item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::more:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 > item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::less:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 < item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::equal:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 == item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::more_equal:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 >= item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::less_equal:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1 <= item2;
-                        stack.push(item3);
-                        break;
-                    }
-                case instruct::op_type::not_equal:
-                    {
-                        const auto item2 = stack.top();
-                        stack.pop();
-                        const auto item1 = stack.top();
-                        stack.pop();
-                        const auto item3 = item1!= item2;
-                        stack.push(item3);
-                        break;
-                    }
+            case instruct::op_type::load_col:
+                {
+                    auto index = static_cast<int>(std::get<int64>(current_ins.data));
+                    stack.push(row_data[index]);
+                    break;
+                }
+            case instruct::op_type::load_imm:
+                {
+                    stack.push(current_ins.data);
+                    break;
+                }
+            case instruct::op_type::add:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_add(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::minus:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_minus(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::mul:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_mul(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::div:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_div(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::mod:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_mod(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::more:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_more(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::less:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_less(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::equal:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_equal(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::more_equal:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_more_equal(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::less_equal:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_less_equal(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
+            case instruct::op_type::not_equal:
+                {
+                    const auto item2 = stack.top();
+                    stack.pop();
+                    const auto item1 = stack.top();
+                    stack.pop();
+                    auto status = row::column_data_not_equal(item1, item2, item3);
+                    if (status != status_ok)
+                        return status;
+                    stack.push(item3);
+                    break;
+                }
             default:
                 throw std::runtime_error("should never happen for instruct");
             }
-
         }
         return offset;
     }
-
 }

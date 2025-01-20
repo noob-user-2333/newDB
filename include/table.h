@@ -60,19 +60,19 @@ namespace iedb
         column_data_type& operator[](int64 index);
 
         [[nodiscard]] int64 get_column_count() const{return size;}
-        [[nodiscard]] static column_type get_column_type(column_data_type & data);
+        [[nodiscard]] static column_type get_column_type(const column_data_type & data);
 
-        static int column_data_add(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_sub(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_mul(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_div(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_mod(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_more(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_more_equal(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_less(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_less_equal(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_equal(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
-        static int column_data_not_equal(column_data_type& data1, column_data_type& data2,column_data_type& out_data);
+        static int column_data_add(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_minus(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_mul(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_div(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_mod(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_more(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_more_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_less(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_less_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
+        static int column_data_not_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
     };
 
     /*

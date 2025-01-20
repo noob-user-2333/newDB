@@ -23,7 +23,7 @@ namespace iedb
             {
                 error,
                 add,
-                sub,
+                minus,
                 mul,
                 div,
                 mod,
