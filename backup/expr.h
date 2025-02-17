@@ -6,8 +6,8 @@
 #define EXPR_H
 #include <stack>
 
-#include "parser.h"
-#include "table.h"
+#include "../include/parser.h"
+#include "../include/table.h"
 
 namespace iedb
 {

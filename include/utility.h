@@ -16,6 +16,8 @@
 #include <stack>
 #include <stdexcept>
 #include <variant>
+#include <list>
+#include <optional>
 namespace iedb {
     using int8 = char;
     using uint8 = unsigned char;
@@ -37,8 +39,8 @@ namespace iedb {
     static constexpr int status_io_error = 5;
     static constexpr int status_argument_overflow = 6;
     static constexpr int status_invalid_journal_page = 7;
-    static constexpr int status_not_find_column = 8;
-    static constexpr int status_not_find_table = 9;
+    static constexpr int status_not_found = 8;
+    // static constexpr int status_not_find_table = 9;
     static constexpr int status_column_exists = 10;
     static constexpr int status_file_exists = 11;
     static constexpr int status_table_exists = 12;
@@ -49,9 +51,14 @@ namespace iedb {
     static constexpr int status_file_read_complete = 17;
     static constexpr int status_error_data_type = 18;
     static constexpr int status_out_of_range = 19;
+    static constexpr int status_io_error_short_read = 20;
+    static constexpr int status_file_not_exists = 21;
+    static constexpr int status_error_file_type = 22;
+
     static constexpr int page_size = 32 * 1024;
     static constexpr uint64 current_format_version = 0x0001000;
 
+    static constexpr char config_file_name[] = "settings.json";
 };
 
 #endif //UTILITY_H

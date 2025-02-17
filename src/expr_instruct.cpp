@@ -1,7 +1,7 @@
 //
 // Created by user on 25-1-15.
 //
-#include "expr.h"
+#include "../backup/expr.h"
 
 namespace iedb
 {
@@ -58,7 +58,7 @@ namespace iedb
             {
                 auto index = target_table.get_col_index_by_name(node.to_string());
                 if (index == -1)
-                    return {instruct::op_type::error, static_cast<long>(status_not_find_column)};
+                    return {instruct::op_type::error, static_cast<long>(status_not_found)};
                 return {instruct::op_type::load_col, static_cast<long>(index)};
             }
         default:

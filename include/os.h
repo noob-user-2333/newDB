@@ -37,19 +37,20 @@ namespace iedb {
         static int seek(int fd,int64 offset,int mode,int64 & out_current_offset);
         static int write(int fd,int64 offset,const void *buf,uint64 count);
         static int write(int fd,const void *buf,uint64 count);
-        static int writev(int fd,const io_vec *iov, int iov_count);
+        // static int writev(int fd,const io_vec *iov, int iov_count);
         static int read(int fd,int64 offset,void *buf,uint64 count);
         static int read(int fd,void *buf,uint64 count);
-        static int readv(int fd,const io_vec *iov, int iov_count);
+        // static int readv(int fd,const io_vec *iov, int iov_count);
+        static int mkdir(const char *path);
         static int fallocate(int fd,int64 offset,int64 length);
         static int fdatasync(int fd);
         static int unlink(const char *path);
-        static int get_file_size(int fd,uint64 & out_size);
-        //默认映射区为可读写且修改将被同步到文件中
-        // static int mmap(int fd,int64 offset,uint64 length,void* & out_start);
-        // static int munmap(void * start,uint64 length);
+        static int get_file_size(int fd,int64 & out_size);
         static int ftruncate(int fd, int64 length);
+        static int is_directory(const char *path);
         static uint64 calculate_checksum(const void * buffer, uint64 size);
+        static uint64 get_real_time_clock();
+        static void memory_safe_copy(void *src,void* dest,int size);
     };
 }
 

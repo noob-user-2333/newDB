@@ -16,9 +16,9 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         #sqlite
         third-part/sqlite/sqlite3.c
         third-part/sqlite/sqlite3.h
-        src/table.cpp
-        test/timer.h
-        src/db_reader.cpp
-        src/table_row.cpp
+        #cJson
+        third-part/cjson/cJSON.c
+        third-part/cjson/cJSON.h
+
 )
 
