@@ -1,6 +1,9 @@
 //
 // Created by user on 25-2-14.
 //
+#include <gtest/gtest-death-test.h>
+#include <gtest/gtest.h>
+
 #include "test.h"
 
 namespace iedb
@@ -52,8 +55,14 @@ namespace iedb
     {
         auto f = fopen(file_path, "w");
         assert(f);
-        assert(fwrite(data, size, 1, f) == size);
+        assert(fwrite(data, 1,size, f) == size);
         fclose(f);
+    }
+
+    int test::run()
+    {
+        testing::InitGoogleTest();
+        return RUN_ALL_TESTS();
     }
 
 }

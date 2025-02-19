@@ -335,32 +335,7 @@ namespace iedb
 
     void os::memory_safe_copy(void* src, void* dest, int size)
     {
-        auto offset = reinterpret_cast<int64>(dest) - reinterpret_cast<int64>(src);
-        if (offset < 0 || offset >= size)
-        {
-            ::memcpy(dest,src,size);
-            return;
-        }
-        //对于dest在src后方，且二者区域存在重叠的情况需要特殊处理
-        auto src_start = static_cast<uint8*>(src);
-        auto src_end = src_start + size - 1;
-
-        // 先处理无法对齐 32 字节的部分
-        size_t remainder = size % 32;
-        for (size_t i = 0; i < remainder; ++i) {
-            src_end[offset] = src_end[0];
-            src_end--;
-        }
-        // 以 256-bit（32 字节）为单位进行拷贝
-        auto src_end_256 = reinterpret_cast<__m256i*>(src_end - 31);
-        auto dest_end_256 = reinterpret_cast<__m256i*>(src_end - 31 + offset);
-
-        for (size_t i = 0; i < size / 32; ++i) {
-            __m256i data = _mm256_loadu_si256(src_end_256);
-            _mm256_storeu_si256(dest_end_256, data);
-            src_end_256--;
-            dest_end_256--;
-        }
+        ::memmove(dest,src,size);
     }
 
 }

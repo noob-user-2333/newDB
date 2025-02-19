@@ -9,6 +9,7 @@
 #include "pager.h"
 #include "timer.h"
 #include "utility.h"
+#include <gtest/gtest.h>
 #include "../third-part/sqlite/sqlite3.h"
 namespace iedb
 {
@@ -19,9 +20,8 @@ namespace iedb
         static std::vector<std::string> get_sql_from_file(const char* file_path);
         static void sqlite_test(std::vector<std::string>& sqls);
         static void save_data_to_file(const void*data,int64 size,const char* file_path);
+        static int run();
 
-
-        static void test_pager(const std::string & path);
 
     };
 }

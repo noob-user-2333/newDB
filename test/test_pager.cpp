@@ -3,13 +3,13 @@
 //
 #include "test.h"
 #include "os.h"
-
 namespace iedb
 {
-    void test::test_pager(const std::string& path)
-    {
         static constexpr int size = 1024 * 1024 * 1024;
         static constexpr int page_count = size / page_size;
+TEST(pager_test,journal)
+{
+        static std::string path = "/dev/shm/paget_test_journal";
         //确保该文件不存在
         if (os::access(path.c_str(), os::access_mode_file_exists) == status_ok)
             os::unlink(path.c_str());
@@ -39,7 +39,7 @@ namespace iedb
             p->get_page(i, ref);
             auto& page = ref.value().get();
             auto value = static_cast<int64*>(page.get_data());
-            assert(*value == i);
+            ASSERT_EQ(*value,i);
         }
         p->release_buffer();
         //测试随机写入
@@ -53,7 +53,7 @@ namespace iedb
             if (pages_no[i] < 0 )
                 pages_no[i] = -pages_no[i];
             auto no = pages_no[i] % page_count;
-            assert(p->get_page(no, ref) == status_ok);
+            ASSERT_EQ(p->get_page(no, ref),status_ok);
             auto& page = ref.value().get();
             page.enable_write();
             auto value = static_cast<int64*>(page.get_data());
@@ -71,11 +71,8 @@ namespace iedb
             p->get_page(no, ref);
             auto& page = ref.value().get();
             auto value = static_cast<int64*>(page.get_data());
-            assert(*value == no + 1);
+            ASSERT_EQ(*value,no + 1);
         }
         p->release_buffer();
-
-
-        printf("wow! the pager running all sample successfully!");
-    }
+}
 }

@@ -9,14 +9,7 @@
 namespace iedb {
     class os {
     public:
-        struct io_vec {
-            void *io_base;
-            uint64 iov_len;
-            void set(void *base, const uint64 len) {
-                io_base = base;
-                iov_len = len;
-            };
-        };
+
         static const int open_mode_read;
         static const int open_mode_write;
         static const int open_mode_append;

@@ -5,6 +5,7 @@
 #ifndef BTREE_H
 #define BTREE_H
 #include "pager.h"
+#include "btree_page.h"
 
 namespace iedb
 {
@@ -12,19 +13,29 @@ namespace iedb
     {
     public:
 
-        class cursor{};
+        class cursor
+        {
+        private:
+            btree const & owner;
+            btree_page * page;
+            uint64 key;
+            memory_slice data;
+        public:
+            cursor(cursor&) = delete;
+            // int insert
+        };
     private:
-        struct btree_page;
-        std::unique_ptr<pager> pager;
+        std::unique_ptr<pager> _pager;
 
 
 
     public:
         btree(const btree&) = delete;
         btree(btree&&) = delete;
-
-
-
+        ~btree() = default;
+        btree(std::unique_ptr<pager>& _pager);
+        cursor get_read_cursor(uint64 key);
+        cursor get_write_cursor(uint64 key);
     };
 
 

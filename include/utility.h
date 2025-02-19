@@ -28,7 +28,16 @@ namespace iedb {
     using int64 = long;
     using uint64 = unsigned long;
 
-
+    struct memory_slice
+    {
+        void* buffer;
+        uint64 size;
+        void set( void* buffer,uint64 size)
+        {
+            this->size = size;
+            this->buffer = buffer;
+        }
+    };
 
     static constexpr int status_error= -1;
     static constexpr int status_ok = 0;
@@ -55,7 +64,7 @@ namespace iedb {
     static constexpr int status_file_not_exists = 21;
     static constexpr int status_error_file_type = 22;
 
-    static constexpr int page_size = 32 * 1024;
+    static constexpr int page_size = 64 * 1024 ;
     static constexpr uint64 current_format_version = 0x0001000;
 
     static constexpr char config_file_name[] = "settings.json";
