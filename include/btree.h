@@ -72,8 +72,12 @@ namespace iedb
         int commit();
         int allocate_page(pager::dbPage_ref & ref);
         int release_page(const pager::dbPage_ref & ref);
-
-
+        static int internal_page_search(btree_page* page, uint64 key, int& out_next_page);
+        int search_page(uint64 key, std::stack<int>& page_no_stack) const;
+        int insert_to_full_page(dbPage_ref& page, uint key, const memory_slice& data, int& out_new_page_no,
+                                uint64& out_new_middle_key);
+        int insert(uint64 key, const memory_slice& data);
+        int delete_item(uint64 key);
 
 
         // static int internal_page_search(btree_page * page,uint64 key,int &out_next_page);

@@ -30,7 +30,6 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
 #        test/test_pager.cpp
         test/test_btree_page.cpp
         src/btree-cursor.cpp
-        src/btree.cpp
 )
 
 target_link_libraries(newDB ${GTEST_LIBRARIES} pthread)
