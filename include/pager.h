@@ -22,13 +22,15 @@ namespace iedb
         private:
             pager& owner;
             int page_no;
-            char data[page_size];
+            bool writable;
+            std::unique_ptr<std::array<uint8,page_size>> data;
         public:
             friend class pager;
             ~dbPage() = default;
             dbPage(dbPage&) = delete;
             dbPage(pager& owner,int page_no);
-            [[nodiscard]]void* get_data();
+            [[nodiscard]] int get_page_no() const;
+            [[nodiscard]]void* get_data() const;
             /*
              * 在对页面进行修改前调用该函数
              */
@@ -55,8 +57,8 @@ namespace iedb
         pager(int fd,std::unique_ptr<journal>&j,int64 original_file_size);
     public:
         ~pager();
-        pager(pager&) = delete;
         using dbPage_ref = std::optional<std::reference_wrapper<dbPage>>;
+        pager(pager&) = delete;
         static std::unique_ptr<pager> open(const std::string& path);
         //用于数据页面管理
         int get_page(int page_no,dbPage_ref& out_page);
@@ -68,7 +70,7 @@ namespace iedb
         int commit_phase_two();
         int rollback_back();
     };
-
+using dbPage_ref = pager::dbPage_ref;
 
 
 

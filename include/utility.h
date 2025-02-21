@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <variant>
 #include <list>
+#include <array>
 #include <optional>
 namespace iedb {
     using int8 = char;
@@ -49,7 +50,7 @@ namespace iedb {
     static constexpr int status_argument_overflow = 6;
     static constexpr int status_invalid_journal_page = 7;
     static constexpr int status_not_found = 8;
-    // static constexpr int status_not_find_table = 9;
+    static constexpr int status_key_exists = 9;
     static constexpr int status_column_exists = 10;
     static constexpr int status_file_exists = 11;
     static constexpr int status_table_exists = 12;

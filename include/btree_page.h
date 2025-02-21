@@ -15,7 +15,9 @@ namespace iedb
     {
         unknown,
         internal,
-        leaf
+        leaf,
+        free,
+        overflow
     };
 
 
@@ -45,15 +47,19 @@ namespace iedb
         public:
             btree_cursor(btree_page* page, int index) : page(page),index(index)
             {}
+            int get_index() const;
             //查找键值大于等于key的第一个节点并将当前index设置为该节点
             //如果找不到则返回status_not_found
-            int search_payload(uint64 key);
+            int search_payload_more_equal(uint64 key);
+            //查找键值小于等于key的最后一个节点并将当前index设置为该节点
+            //如果找不到则返回status_not_found
+            int search_payload_less_equal(uint64 key);
             int insert_payload(uint64 key, const memory_slice & data);
             int next();
             int previous();
             int last();
             int first();
-            int get_payload(uint64&out_key,memory_slice&out_data);
+            void get_payload(uint64&out_key,memory_slice&out_data) const;
             int update_payload(const memory_slice & new_data);
             int delete_payload();
         };
@@ -103,16 +109,18 @@ namespace iedb
         int data_zone_offset;
         int free_zone_offset;
         int next_page;
+        int prev_page;
         int payload_count;
         int free_fragment_count;
         int free_fragment_offset;
         int payload_size_count;
+        int reserved;
         uint64 checksum;
         payload_meta payloads[];
         btree_page() = delete;
 
 
-        static btree_page* init(void* data, btree_page_type type, int next_page);
+        static btree_page* init(void* data, btree_page_type type,int prev_page, int next_page);
         //如果checksum和计算出的不同则返回空指针
         static btree_page* open(void* data);
         //将两者的payload进行平衡，out_middle_key为last页面的第一个key值
@@ -120,7 +128,7 @@ namespace iedb
         //将back指向的页面的内容合并到front中
         //注:若二者不足以合并到同一页面返回status_no_space
         static int merge(btree_page* front, btree_page* back);
-
+        static btree_page_type get_page_type(const void* page_data);
         btree_cursor get_cursor();
 
 

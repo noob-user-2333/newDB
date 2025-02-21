@@ -50,13 +50,14 @@ namespace iedb
     }
 
 
-    btree_page* btree_page::init(void* data, btree_page_type type, int next_page)
+    btree_page* btree_page::init(void* data, btree_page_type type,int prev_page, int next_page)
     {
         auto result = static_cast<btree_page*>(data);
         result->type = type;
         result->data_zone_offset = page_size;
         result->free_zone_offset = sizeof(btree_page);
         result->next_page = next_page;
+        result->prev_page = prev_page;
         result->payload_count = 0;
         result->free_fragment_count = 0;
         result->free_fragment_offset = 0;
@@ -76,6 +77,11 @@ namespace iedb
         return result;
     }
 
+    btree_page_type btree_page::get_page_type(const void* page_data)
+    {
+        return *static_cast<const btree_page_type*>(page_data);
+    }
+
     int btree_page::allocate_stack_space(int size, int& out_offset)
     {
         auto free_space = compute_free_space() - static_cast<int>(sizeof(payload_meta));
@@ -90,6 +96,7 @@ namespace iedb
 
     int btree_page::allocate_fragment_space(int size, int& out_offset)
     {
+        assert(size >= 0 && (size & 7) == 0);
         auto page_start = static_cast<uint8*>(static_cast<void*>(this));
         auto free_space = compute_free_space();
         if (free_fragment_count == 0)
@@ -106,7 +113,7 @@ namespace iedb
             //获取当前碎片信息
             auto fragment = static_cast<fragment_header*>(fragment_start);
             //找到满足条件的碎片
-            if (fragment->size >= size)
+            if (fragment->size == size)
             {
                 //将该碎片从链表中释放
                 if (last_fragment)
@@ -134,7 +141,7 @@ namespace iedb
 
     int btree_page::allocate_space(int size, int& out_offset)
     {
-        assert(size > 0);
+        assert(size > 0 && size < page_size / 4);
         //由于释放时需至少8byte存放信息，故每次分配至少需要8byte
         //由于payloads仅能保存实际数据大小，无法保存实际空间大小
         //为了能正常释放空间，分配空间需向上对齐8byte

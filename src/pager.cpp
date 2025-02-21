@@ -6,13 +6,21 @@
 
 namespace iedb
 {
-    pager::dbPage::dbPage(pager& owner, int page_no):owner(owner),page_no(page_no),data()
-    {}
-    void *pager::dbPage::get_data() {return static_cast<char*>(data);}
+    pager::dbPage::dbPage(pager& owner, int page_no):owner(owner),page_no(page_no),data(),writable(false)
+    {
+        data = std::make_unique<std::array<uint8,page_size>>();
+    }
+    void *pager::dbPage::get_data() const {return data->data();}
+    int pager::dbPage::get_page_no() const{return page_no;}
 
     int pager::dbPage::enable_write()
     {
-        return owner.mark_page_writable(*this);
+        if (writable)
+            return status_ok;
+        auto status =  owner.mark_page_writable(*this);
+        if (status == status_ok)
+            writable = true;
+        return status;
     }
 
     pager::pager(int fd, std::unique_ptr<journal>& j,int64 original_file_size):j(std::move(j)),fd(fd),page_count(original_file_size / page_size),status(pager_status::error)
@@ -25,7 +33,7 @@ namespace iedb
     {
         //在日志文件中登记该页面
         assert(status == pager_status::write_transaction);
-        auto _status = j->add_page(page.page_no,page.data);
+        auto _status = j->add_page(page.page_no,page.data->data());
         if (_status !=status_ok)
         {
             status = pager_status::error;
@@ -55,9 +63,18 @@ namespace iedb
             fprintf(stderr,"can't open the data file:%s\n",path.c_str());
             return nullptr;
         }
+        //确保对应文件至少存在0号页
+        status = os::fallocate(fd,0,page_size);
+        if (status!= status_ok)
+        {
+            os::close(fd);
+            fprintf(stderr,"can't fallocate the file(%s) when open it as pager\n",path.c_str());
+            return nullptr;
+        }
         status = os::get_file_size(fd,original_file_size);
         if (status != status_ok)
         {
+            os::close(fd);
             fprintf(stderr,"can't get the file size:%s\n",path.c_str());
             return nullptr;
         }
@@ -73,7 +90,7 @@ namespace iedb
             out_page.reset();
             return status_out_of_range;
         }
-        auto _status = os::read(fd,offset,page.data,page_size);
+        auto _status = os::read(fd,offset,page.data->data(),page_size);
         if (_status !=status_ok)
             return _status;
         out_page = page;
@@ -131,7 +148,7 @@ namespace iedb
         for (auto  writable_page : writable_pages)
         {
             auto offset = static_cast<int64>(writable_page->page_no) * page_size;
-            _status = os::write(fd,offset,writable_page->data, page_size);
+            _status = os::write(fd,offset,writable_page->data->data(), page_size);
             if (_status != status_ok)
             {
                 status = pager_status::error;

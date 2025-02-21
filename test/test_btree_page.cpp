@@ -2,7 +2,7 @@
 // Created by user on 25-2-18.
 //
 
-#include "btree.h"
+#include "../include/btree.h"
 #include "test.h"
 
 #include "btree_page.h"
@@ -18,10 +18,12 @@ TEST(btree_page_test,init)
     test::get_random(random,sizeof(random));
     test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
     auto next_page = static_cast<int>(random[0]);
-    auto p = btree_page::init(page_buffer,btree_page_type::internal,next_page);
+    auto prev_page = static_cast<int>(random[1]);
+    auto p = btree_page::init(page_buffer,btree_page_type::internal,prev_page,next_page);
     // ASSERT_EQ(p->checksum,os::calculate_checksum(p,sizeof(btree_page) - sizeof(uint64)));
     ASSERT_EQ(p->type, btree_page_type::internal);
     ASSERT_EQ(p->next_page,next_page);
+    ASSERT_EQ(p->prev_page,prev_page);
     ASSERT_EQ(p->free_fragment_count,0);
     ASSERT_EQ(p->payload_count,0);
     ASSERT_EQ(p->free_zone_offset,sizeof(btree_page));
@@ -123,7 +125,7 @@ TEST(btree_page_test,delete)
     ASSERT_EQ(cursor.first(),status_ok);
     for (auto i = 0;i < p->payload_count;i++)
     {
-        ASSERT_EQ(cursor.get_payload(key, slice),status_ok);
+        cursor.get_payload(key, slice);
         ASSERT_EQ(memcmp(slice.buffer, random, slice.size), 0);
         cursor.next();
     }
@@ -182,7 +184,7 @@ TEST(btree_page_test,update)
     ASSERT_EQ(cursor.first(),status_ok);
     for (auto i = 0;i < p->payload_count;i++)
     {
-        ASSERT_EQ(cursor.get_payload(key, slice),status_ok);
+        cursor.get_payload(key, slice);
         const auto cmp1 = memcmp(slice.buffer, random, slice.size);
         const auto cmp2 = memcmp(slice.buffer, random + slice.size, slice.size);
         ASSERT_FALSE(cmp2 && cmp1);

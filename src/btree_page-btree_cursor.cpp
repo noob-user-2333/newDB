@@ -6,15 +6,19 @@
 
 namespace iedb
 {
-    int btree_page::btree_cursor::search_payload(uint64 key)
+    int btree_page::btree_cursor::get_index() const
+    {
+        return index;
+    }
+
+    int btree_page::btree_cursor::search_payload_more_equal(uint64 key)
     {
         assert(page->payload_count >= 0);
-
-        for (auto current_index = 0;current_index < page->payload_count;current_index++)
+        for (auto current_index = page->payload_count - 1;current_index >= 0;current_index--)
         {
             const auto& payload = page->payloads[current_index];
             const auto current_key = payload.key;
-            if (current_key >= key)
+            if (key >= current_key)
             {
                 index = current_index;
                 return status_ok;
@@ -22,8 +26,34 @@ namespace iedb
         }
         return status_not_found;
     }
+    int btree_page::btree_cursor::search_payload_less_equal(uint64 key)
+    {
+        assert(page->payload_count >= 0);
+        auto status = search_payload_more_equal(key);
+        //如果没有找到，则说明所有payload的key值均大于查找的key
+        if (status != status_ok)
+        {
+            index = 0;
+            return status_ok;
+        }
+        //否则首先检查当前key和查找key是否一致
+        const auto & payload = page->payloads[index];
+        if (payload.key == key)
+            return status_ok;
+        //如果key不一致，则index应当为index - 1
+        //如果index为0则说明key大于所有payload的key值
+        if (index == 0)
+            return status_not_found;
+        index--;
+        return status_ok;
+    }
     int btree_page::btree_cursor::insert_payload(uint64 key, const memory_slice& data)
     {
+        //检查该页是否存在相同的key
+        for (auto i = 0; i  < page->payload_count;i++)
+            if(page->payloads[i].key == key)
+                return status_key_exists;
+        //不存在则可以正常插入
         const auto size = static_cast<int>(data.size);
         int offset;
         auto status = page->allocate_space(size,offset);
@@ -70,14 +100,12 @@ namespace iedb
         index = page->payload_count - 1;
         return status_ok;
     }
-    int btree_page::btree_cursor::get_payload(uint64& out_key, memory_slice& out_data)
+    void btree_page::btree_cursor::get_payload(uint64& out_key, memory_slice& out_data) const
     {
-        if (index < 0 || index >= page->payload_count)
-            return status_out_of_range;
+        assert(index >= 0 || index < page->payload_count);
         const auto& payload = page->payloads[index];
         out_key = payload.key;
         out_data.set(reinterpret_cast<uint8*>(page) + payload.offset, payload.size);
-        return status_ok;
     }
 
     int btree_page::btree_cursor::update_payload(const memory_slice& new_data)
