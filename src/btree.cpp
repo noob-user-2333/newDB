@@ -3,28 +3,32 @@
 //
 #include "../include/btree.h"
 #define CHECK_ERROR(x) {_status = x;if (_status != status_ok) return _status;}
+
 namespace iedb
 {
-    btree::btree(std::unique_ptr<pager>& _pager, const btree_header&header):_status(status::normal),_pager(std::move(_pager)),header(header),ref_count(0)
+    btree::btree(std::unique_ptr<pager>& _pager, const btree_header& header): _status(status::normal),
+                                                                              _pager(std::move(_pager)), header(header),
+                                                                              ref_count(0)
     {
     }
+
     std::unique_ptr<btree> btree::open(std::unique_ptr<pager>& _pager)
     {
         pager::dbPage_ref ref;
-        auto status = _pager->get_page(0,ref);
-        if (status!= status_ok)
+        auto status = _pager->get_page(0, ref);
+        if (status != status_ok)
         {
-            fprintf(stderr,"can't get the no.0 page when open btree\n");
+            fprintf(stderr, "can't get the no.0 page when open btree\n");
             return nullptr;
         }
         auto& page = ref->get();
         auto header = static_cast<btree_header*>(page.get_data());
         //如果魔数不匹配，则说明需进行初始化
-        if (strcmp(header->magic,btree_header::magic_string) != 0)
+        if (strcmp(header->magic, btree_header::magic_string) != 0)
         {
             _pager->begin_write_transaction();
             page.enable_write();
-            btree_page::init(page.get_data(),btree_page_type::leaf,0,0);
+            btree_page::init(page.get_data(), btree_page_type::leaf, 0, 0);
             _pager->commit_phase_one();
             _pager->commit_phase_two();
         }
@@ -44,19 +48,20 @@ namespace iedb
         CHECK_ERROR(page.enable_write());
         //在0号页面中创建一个新的btree根页
         auto page_data = page_ref->get().get_data();
-        auto root_page = btree_page::init(page_data, btree_page_type::leaf,0,0);
+        auto root_page = btree_page::init(page_data, btree_page_type::leaf, 0, 0);
         //将修改提交
         CHECK_ERROR(_pager->commit_phase_one());
         CHECK_ERROR(_pager->commit_phase_two());
         return status_ok;
     }
+
     int btree::enable_write()
     {
         assert(_status == status::normal);
         auto _status = 0;
         CHECK_ERROR(_pager->begin_write_transaction());
         this->_status = status::write;
-        return  status_ok;
+        return status_ok;
     }
 
     int btree::commit()
@@ -69,7 +74,7 @@ namespace iedb
         auto& page = page_ref->get();
         auto page_data = page.get_data();
         page.enable_write();
-        memcpy(page.get_data(),&header,sizeof(header));
+        memcpy(page.get_data(), &header, sizeof(header));
         //将修改提交
         CHECK_ERROR(_pager->commit_phase_one());
         CHECK_ERROR(_pager->commit_phase_two());
@@ -88,12 +93,14 @@ namespace iedb
             auto page_header = static_cast<free_pager_header*>(ref->get().get_data());
             assert(page_header->type == btree_page_type::free);
             header.free_page_no = page_header->next_page;
-        }else
+        }
+        else
         {
             CHECK_ERROR(_pager->get_new_page(ref));
         }
         return ref->get().enable_write();
     }
+
     int btree::release_page(const pager::dbPage_ref& ref)
     {
         assert(_status == status::write);
@@ -105,7 +112,7 @@ namespace iedb
         return status_ok;
     }
 
-    int btree::internal_page_search(btree_page* page, uint64 key,int& out_next_page)
+    int btree::internal_page_search(btree_page* page, uint64 key, int& out_next_page)
     {
         assert(page);
         auto cursor = page->get_cursor();
@@ -120,12 +127,10 @@ namespace iedb
     }
 
 
-
     int btree::search_page(uint64 key, std::stack<int>& page_no_stack) const
     {
         //清空stack
-        while (!page_no_stack.empty())
-            page_no_stack.pop();
+        assert(page_no_stack.empty());
         dbPage_ref page_ref;
         auto page_no = header.root_page_no;
         auto _status = 0;
@@ -144,7 +149,8 @@ namespace iedb
         return status_ok;
     }
 
-    int btree::insert_to_full_page(dbPage_ref& page, uint key, const memory_slice& data, int& out_new_page_no, uint64& out_new_middle_key)
+    int btree::insert_to_full_page(dbPage_ref& page, uint key, const memory_slice& data, int& out_new_page_no,
+                                   uint64& out_new_middle_key)
     {
         dbPage_ref _next_page;
         auto _status = 0;
@@ -159,17 +165,18 @@ namespace iedb
         auto page_type = front_page->type;
         auto page_next_page_no = front_page->next_page;
         front_page->next_page = next_page_no;
-        auto next_page = btree_page::init(_next_page->get().get_data(),page_type,front_page_no,page_next_page_no);
+        auto next_page = btree_page::init(_next_page->get().get_data(), page_type, front_page_no, page_next_page_no);
         out_new_page_no = next_page_no;
         //对两者页面数据进行平衡
         uint64 middle_key = 0;
-        btree_page::balance(front_page,next_page,middle_key);
+        btree_page::balance(front_page, next_page, middle_key);
         //确定新数据应当插入哪个页面
         if (key >= middle_key)
         {
             auto cursor = next_page->get_cursor();
             CHECK_ERROR(cursor.insert_payload(key,data));
-        }else
+        }
+        else
         {
             auto cursor = front_page->get_cursor();
             CHECK_ERROR(cursor.insert_payload(key,data));
@@ -197,7 +204,7 @@ namespace iedb
             auto page_data = page_ref->get().get_data();
             auto page = btree_page::open(page_data);
             auto cursor = page->get_cursor();
-            _status = cursor.insert_payload(current_key,current_slice);
+            _status = cursor.insert_payload(current_key, current_slice);
             if (_status == status_ok)
                 return status_ok;
             //如果空间不足，则需要进行分裂
@@ -206,15 +213,82 @@ namespace iedb
             CHECK_ERROR(insert_to_full_page(page_ref,key,current_slice,new_page_no,middle_key));
             current_key = middle_key;
             buff = new_page_no;
-            current_slice.set(&buff,current_key);
+            current_slice.set(&buff, current_key);
         }
         //连最顶层页面都进行分裂，则需申请新页并修改root页面
         CHECK_ERROR(allocate_page(page_ref));
-        auto root_page = btree_page::init(page_ref->get().get_data(),btree_page_type::internal,0,0);
+        auto root_page = btree_page::init(page_ref->get().get_data(), btree_page_type::internal, 0, 0);
         header.root_page_no = page_ref->get().get_page_no();
         auto cursor = root_page->get_cursor();
-        return cursor.insert_payload(current_key,current_slice);
+        return cursor.insert_payload(current_key, current_slice);
     }
+
+    int btree::delete_in_leaf_page(int page_no, uint64 key, int& out_merged_page_no, uint64& out_deleted_page_first_key)
+    {
+        assert(_status == status::write && page_no > 0);
+        dbPage_ref page_ref;
+        auto _status = 0;
+        out_merged_page_no = 0;
+        CHECK_ERROR(_pager->get_page(page_no, page_ref));
+        auto page = btree_page::open(page_ref->get().get_data());
+        auto cursor = page->get_cursor();
+        //查找并删除该页key对应的payload
+        cursor.search_payload_more_equal(key);
+        cursor.delete_payload();
+        out_deleted_page_first_key = 0;
+        //如果删除后该页面包含数据量较少则考虑合并
+        if (page->payload_size_count <= page_size / 8)
+        {
+            auto next_page_no = 0;
+            auto prev_page_no = 0;
+            auto next_page = page;
+            auto prev_page = page;
+            auto next_page_ref = page_ref;
+            auto prev_page_ref = page_ref;
+            if (page->next_page)
+            {
+                next_page_no = page->next_page;
+                prev_page_no = page_ref->get().get_page_no();
+                CHECK_ERROR(_pager->get_page(page->next_page,next_page_ref));
+                next_page = btree_page::open(next_page_ref->get().get_data());
+                prev_page = page;
+            }
+            else if (page->prev_page)
+            {
+                next_page_no = page_ref->get().get_page_no();
+                prev_page_no = page->prev_page;
+                CHECK_ERROR(_pager->get_page(page->prev_page,prev_page_ref));
+                prev_page = btree_page::open(prev_page_ref->get().get_data());
+                next_page = page;
+            }
+            else
+            {
+                //当不存在后续页面时则直接返回
+                return status_ok;
+            }
+            //检查是否需要合并
+            //如果两个页面总数据量小于 3 / 4 个页面，则合并
+            if (next_page->payload_size_count + prev_page->payload_size_count <= page_size / 4 * 3)
+            {
+                out_merged_page_no = next_page_no;
+                //保存next_page的第一个key用于后续叶节点删除
+                out_deleted_page_first_key = next_page->payloads[0].key;
+                //将两个页面标记为可写
+                prev_page_ref->get().enable_write();
+                next_page_ref->get().enable_write();
+                //合并
+                CHECK_ERROR(btree_page::merge(prev_page,next_page));
+                // 删除next_page
+                release_page(next_page_ref);
+                // 如果prev_page的next_page和prev_page是0，说明prev_page是最顶层页面，需要修改root_page_no
+                if (prev_page->next_page == 0 && prev_page->prev_page == 0)
+                    header.root_page_no = prev_page_ref->get().get_page_no();
+            }
+        }
+        return status_ok;
+    }
+
+
     int btree::delete_item(uint64 key)
     {
         assert(_status == status::write);
@@ -223,24 +297,96 @@ namespace iedb
         uint64 current_key;
         memory_slice slice{};
         auto _status = 0;
+        auto page_no = 0;
+        auto merged_page_no = 0;
+        //由于存在最顶层仅单个节点，删除后原二层变为顶层的情况，故需记录上一级节点页号
+        auto last_merged_page = 0;
         CHECK_ERROR(search_page(key,stack));
         while (stack.empty() == false)
         {
-            auto page_no = stack.top();
+            page_no = stack.top();
+            uint64 deleted_page_first_key;
             stack.pop();
-            CHECK_ERROR(_pager->get_page(page_no,page_ref));
-            auto page_data = page_ref->get().get_data();
-            auto page = btree_page::open(page_data);
-            auto cursor = page->get_cursor();
-            CHECK_ERROR(cursor.search_payload_less_equal(key));
-            cursor.get_payload(current_key,slice);
-            if (current_key != key)
-                return status_not_found;
-            //如果找到了payload，则进行删除
-            return cursor.delete_payload();
+            CHECK_ERROR(delete_in_leaf_page(page_no,key,merged_page_no,deleted_page_first_key));
+            //如果出现合并，则需要进一步对上一层的节点进行删除
+            //否则直接返回
+            if (merged_page_no == 0)
+                return status_ok;
+            key = deleted_page_first_key;
+            last_merged_page = merged_page_no;
         }
-        throw std::runtime_error("should not  run here");
+        //检查根页是否还存在节点
+        CHECK_ERROR(_pager->get_page(header.root_page_no,page_ref));
+        auto page = btree_page::open(page_ref->get().get_data());
+        //如果不存在节点则需释放根页，并将根页号切换为上一级的合并页页号
+        if (page->payload_size_count == 0)
+        {
+            CHECK_ERROR(release_page(page_ref));
+            header.root_page_no = last_merged_page;
+        }
+        return status_ok;
     }
 
+    int btree::get_cursor(uint64 key, std::unique_ptr<cursor>& out_cursor)
+    {
+        std::stack<int> stack;
+        auto _status = 0;
+        CHECK_ERROR(search_page(key,stack));
+        auto page_no = stack.top();
+        dbPage_ref page_ref;
+        CHECK_ERROR(_pager->get_page(page_no,page_ref));
+        auto page = btree_page::open(page_ref->get().get_data());
+        auto page_cursor = page->get_cursor();
+        CHECK_ERROR(page_cursor.search_payload_more_equal(key));
+        out_cursor = std::make_unique<cursor>(*this, page_ref, page_cursor);
+        return status_ok;
+    }
 
+    int btree::get_first_cursor(std::unique_ptr<cursor>& out_cursor)
+    {
+        //从根页开始，不断获取第一个payload
+        auto page_no = header.root_page_no;
+        dbPage_ref page_ref;
+        auto _status = 0;
+        CHECK_ERROR(_pager->get_page(page_no,page_ref));
+        auto page = btree_page::open(page_ref->get().get_data());
+        uint64 key;
+        memory_slice slice{};
+        auto _cursor = page->get_cursor();
+        while (page->type == btree_page_type::internal)
+        {
+            _cursor.get_payload(key, slice);
+            page_no = *static_cast<int*>(slice.buffer);
+            CHECK_ERROR(_pager->get_page(page_no,page_ref));
+            page = btree_page::open(page_ref->get().get_data());
+            _cursor = page->get_cursor();
+        }
+        out_cursor = std::make_unique<cursor>(*this, page_ref, _cursor);
+        return status_ok;
+    }
+
+    int btree::get_last_cursor(std::unique_ptr<cursor>& out_cursor)
+    {
+        //从根页开始，不断获取最后一个payload
+        auto page_no = header.root_page_no;
+        dbPage_ref page_ref;
+        auto _status = 0;
+        CHECK_ERROR(_pager->get_page(page_no,page_ref));
+        auto page = btree_page::open(page_ref->get().get_data());
+        uint64 key;
+        memory_slice slice{};
+        auto _cursor = page->get_cursor();
+        CHECK_ERROR(_cursor.last());
+        while (page->type == btree_page_type::internal)
+        {
+            _cursor.get_payload(key, slice);
+            page_no = *static_cast<int*>(slice.buffer);
+            CHECK_ERROR(_pager->get_page(page_no,page_ref));
+            page = btree_page::open(page_ref->get().get_data());
+            _cursor = page->get_cursor();
+            CHECK_ERROR(_cursor.last());
+        }
+        out_cursor = std::make_unique<cursor>(*this, page_ref, _cursor);
+        return status_ok;
+    }
 }

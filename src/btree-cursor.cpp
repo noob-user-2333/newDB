@@ -9,9 +9,10 @@ namespace iedb
     {
         return  btree_page::open(page_ref->get().get_data());
     }
-    btree::cursor::cursor(btree& owner, btree_page* page, int index):owner(owner),index(index)
-    {
-    }
+    btree::cursor::cursor(btree& owner, dbPage_ref& page_ref,
+        const btree_page::btree_cursor& page_cursor):owner(owner),page_ref(page_ref),page_cursor(page_cursor)
+    {}
+
     int btree::cursor::enable_write()
     {
         return owner.enable_write();
@@ -23,37 +24,71 @@ namespace iedb
     int btree::cursor::insert_item(uint64 key, const memory_slice& data) const
     {
         assert(owner._status == status::write);
-        //获取根页
-        auto page_no = owner.header.root_page_no;
-        dbPage_ref page_ref;
+        return owner.insert(key,data);
+    }
+    int btree::cursor::delete_item()
+    {
+        assert(owner._status == status::write);
+        auto page= get_btree_page(page_ref);
+        assert(index >=0 && index < page->payload_count);
+        page_ref->get().enable_write();
+        const auto key = page->payloads[index].key;
+        return owner.delete_item(key);
+    }
+    void btree::cursor::get_item(uint64&out_key,memory_slice& out_data) const
+    {
+        page_cursor.get_payload(out_key,out_data);
+    }
+
+    int btree::cursor::update_item(const memory_slice& data)
+    {
+        assert(owner._status == status::write);
+        memory_slice slice{};
+        uint64 key;
         auto _status = 0;
-        CHECK_ERROR(owner._pager->get_page(page_no,page_ref));
-        auto page = get_btree_page(page_ref);
-        CHECK_ERROR(page_ref->get().enable_write());
-        //在根页中插入数据
-        auto cursor = page->get_cursor();
-        _status = cursor.insert_payload(key,data);
-        //如果根页已满，则需要进行分裂
-        if (_status != status_ok)
-        {
-            //先获取新页面
-            dbPage_ref new_page_ref;
-            CHECK_ERROR(owner.allocate_page(new_page_ref));
-            btree_page::init(new_page_ref->get().get_data(),btree_page_type::leaf,0,page_no);
-            //将新页设置为根页
-            owner.header.root_page_no = new_page_ref->get().get_page_no();
-            page->prev_page = new_page_ref->get().get_page_no();
-            auto new_page = get_btree_page(new_page_ref);
-            //在新根页中插入数据
-            cursor = new_page->get_cursor();
-            CHECK_ERROR(cursor.insert_payload(key,data));
-        }
+        get_item(key, slice);
+        CHECK_ERROR(delete_item());
+        CHECK_ERROR(insert_item(key,data));
         return status_ok;
     }
 
-
-
-
+    int btree::cursor::next()
+    {
+        auto _status = page_cursor.next();
+        if (_status == status_ok)
+            return status_ok;
+        auto page = get_btree_page(page_ref);
+        if (index + 1 < page->get_payload)
+        {
+            index++;
+            return status_ok;
+        }
+        //否则需要切换到下一页
+        //如果next_page为0，则说明已经到达末尾
+        if (page->next_page == 0)
+            return status_out_of_range;
+        CHECK_ERROR(owner._pager->get_page(page->next_page,page_ref));
+        page = get_btree_page(page_ref);
+        assert(page->payload_count);
+        page_cursor = page->get_cursor();
+        return status_ok;
+    }
+int btree::cursor::prev()
+    {
+        auto _status = page_cursor.previous();
+        if (_status == status_ok)
+            return status_ok;
+        auto page = get_btree_page(page_ref);
+        //否则需要切换到下一页
+        //如果prev_page为0，则说明已经到达头部
+        if (page->prev_page == 0)
+            return status_out_of_range;
+        CHECK_ERROR(owner._pager->get_page(page->prev_page,page_ref));
+        page = get_btree_page(page_ref);
+        assert(page->payload_count);
+        page_cursor = page->get_cursor();
+        return page_cursor.last();
+    }
 
 
 }

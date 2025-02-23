@@ -355,6 +355,16 @@ namespace iedb
         out_middle_key = key;
     }
 
+    void btree_page::get_payload(int index, uint64& out_key, memory_slice& data)
+    {
+        assert(index >= 0 && index < payload_count);
+        auto offset = payloads[index].offset;
+        auto size = payloads[index].size;
+        out_key = payloads[index].key;
+        auto data_start = reinterpret_cast<uint8*>(this) + offset;
+        data.set(data_start,size);
+    }
+
     btree_page::btree_cursor btree_page::get_cursor()
     {
         return {this, -1};

@@ -9,13 +9,6 @@
 
 namespace iedb
 {
-    /*
-     *  给定键值，获取cursor，生成最接进
-     *
-     *
-     *
-     */
-
     class btree
     {
     public:
@@ -25,18 +18,19 @@ namespace iedb
         private:
             btree& owner;
             dbPage_ref page_ref;
-            int index;
+            btree_page::btree_cursor page_cursor;
             static btree_page* get_btree_page(dbPage_ref& page_ref);
         public:
             cursor(cursor&) = delete;
-            cursor(btree& owner,btree_page * page,int index);
+            cursor(btree& owner,dbPage_ref & page_ref, const btree_page::btree_cursor& page_cursor);
             int enable_write();
             int commit();
             int insert_item(uint64 key,const memory_slice & data) const;
-            // int delete_item();
-            // int update_item();
-            // int next();
-            // int prev();
+            int delete_item();
+            void get_item(uint64& out_key,memory_slice & out_data) const;
+            int update_item(const memory_slice & data);
+            int next();
+            int prev();
 
         };
     private:
@@ -77,16 +71,10 @@ namespace iedb
         int insert_to_full_page(dbPage_ref& page, uint key, const memory_slice& data, int& out_new_page_no,
                                 uint64& out_new_middle_key);
         int insert(uint64 key, const memory_slice& data);
+        //该函数用于删除叶节点
+        int delete_in_leaf_page(int page_no,uint64 key,int&out_merged_page_no,uint64& out_deleted_page_first_key);
         int delete_item(uint64 key);
 
-
-        // static int internal_page_search(btree_page * page,uint64 key,int &out_next_page);
-
-        //获取对查询条件为 >=key 的情况，第一个符合条件的payload所在的页面
-        // int search_page(uint64 key,std::stack<int>& page_no_stack) const;
-        //当原页空间不足时调用，将原页分裂后插入数据并输出新页页号
-        // int insert_to_full_page(dbPage_ref& page,uint key,const memory_slice & data,int & out_new_page_no,uint64 & out_new_middle_key);
-        // int delete_item(uint64 key);
         btree(std::unique_ptr<pager>& _pager, const btree_header&header);
 
     public:
@@ -94,7 +82,9 @@ namespace iedb
         btree(btree&&) = delete;
         ~btree() = default;
         static std::unique_ptr<btree> open(std::unique_ptr<pager>&_pager);
-        cursor get_cursor();
+        int get_cursor(uint64 key,std::unique_ptr<cursor> & out_cursor);
+        int get_first_cursor(std::unique_ptr<cursor> & out_cursor);
+        int get_last_cursor(std::unique_ptr<cursor> & out_cursor);
     };
 
 

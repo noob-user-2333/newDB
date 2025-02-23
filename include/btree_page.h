@@ -129,6 +129,7 @@ namespace iedb
         //注:若二者不足以合并到同一页面返回status_no_space
         static int merge(btree_page* front, btree_page* back);
         static btree_page_type get_page_type(const void* page_data);
+        void get_payload(int index,uint64 & out_key,memory_slice & data);
         btree_cursor get_cursor();
 
 
