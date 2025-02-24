@@ -30,9 +30,10 @@ namespace iedb
     {
         assert(owner._status == status::write);
         auto page= get_btree_page(page_ref);
-        assert(index >=0 && index < page->payload_count);
         page_ref->get().enable_write();
-        const auto key = page->payloads[index].key;
+        uint64 key;
+        memory_slice unused{};
+        page_cursor.get_payload(key,unused);
         return owner.delete_item(key);
     }
     void btree::cursor::get_item(uint64&out_key,memory_slice& out_data) const
@@ -58,11 +59,6 @@ namespace iedb
         if (_status == status_ok)
             return status_ok;
         auto page = get_btree_page(page_ref);
-        if (index + 1 < page->get_payload)
-        {
-            index++;
-            return status_ok;
-        }
         //否则需要切换到下一页
         //如果next_page为0，则说明已经到达末尾
         if (page->next_page == 0)

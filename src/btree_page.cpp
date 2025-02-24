@@ -9,8 +9,7 @@ namespace iedb
     int btree_page::compute_max_free_space() const
     {
         assert(data_zone_offset >= free_zone_offset);
-        return page_size - static_cast<int>(sizeof(btree_page)) - static_cast<int>(sizeof(payload_meta)) *
-            payload_count - payload_size_count;
+        return data_zone_offset - free_zone_offset + free_fragment_count;
     }
 
     int btree_page::compute_free_space() const
@@ -246,40 +245,66 @@ namespace iedb
         return 0;
     }
 
+    // void btree_page::vacuum()
+    // {
+    //     auto page_start = reinterpret_cast<uint8*>(this);
+    //     uint64 priorities[payload_count];
+    //     payload_size_count = 0;
+    //     //优先级由两个32bit数字组成，高32位为偏移量，低32位为index
+    //     //首先生成优先级数组
+    //     for (auto i = 0; i < payload_count; i++)
+    //         priorities[i] = (static_cast<uint64>(payloads[i].offset) << 32) | i;
+    //     //排序
+    //     std::qsort(priorities, payload_count, sizeof(uint64), priority_compare);
+    //     //遍历priority数组，逐个提取数据并将其放置到末尾
+    //     auto new_data_zone_offset = page_size;
+    //     for (auto priority : priorities)
+    //     {
+    //         //提取该数据对应的索引和偏移量
+    //         auto index = static_cast<int>(priority & 0xFFFFFFFF);
+    //         auto offset = static_cast<int>(priority >> 32);
+    //         //提取该数据起始地址和大小
+    //         auto data_start = page_start + offset;
+    //         auto data_size = (payloads[index].size + 7) & (~(7));
+    //         //将数据从后向前遍历，将其移动到页面末尾
+    //         const auto new_data_start = page_start + new_data_zone_offset - data_size;
+    //         os::memory_safe_copy(data_start, new_data_start, data_size);
+    //         auto new_offset = static_cast<int>(new_data_start - page_start);
+    //         payloads[index].offset = new_offset;
+    //         payload_size_count += data_size;
+    //         new_data_zone_offset -= data_size;
+    //     }
+    //     //初始化页头
+    //     data_zone_offset = new_data_zone_offset;
+    //     free_fragment_count = 0;
+    //     free_fragment_offset = 0;
+    //     // checksum = os::calculate_checksum(this, sizeof(btree_page) - sizeof(uint64));
+    // }
+
     void btree_page::vacuum()
     {
-        auto page_start = reinterpret_cast<uint8*>(this);
-        uint64 priorities[payload_count];
-        payload_size_count = 0;
-        //优先级由两个32bit数字组成，高32位为偏移量，低32位为index
-        //首先生成优先级数组
-        for (auto i = 0; i < payload_count; i++)
-            priorities[i] = (static_cast<uint64>(payloads[i].offset) << 32) | i;
-        //排序
-        std::qsort(priorities, payload_count, sizeof(uint64), priority_compare);
-        //遍历priority数组，逐个提取数据并将其放置到末尾
-        auto new_data_zone_offset = page_size;
-        for (auto priority : priorities)
+        uint8 page_buff[page_size];
+        auto new_page = btree_page::init(page_buff,type,prev_page,next_page);
+        auto new_cursor = new_page->get_cursor();
+        auto cursor = get_cursor();
+        auto status = 0;
+        uint64 key;
+        memory_slice data{};
+        int index = 0;
+        auto size_count = 0UL;
+        auto data_size_count = 0UL;
+        while (cursor.next() == status_ok)
         {
-            //提取该数据对应的索引和偏移量
-            auto index = static_cast<int>(priority & 0xFFFFFFFF);
-            auto offset = static_cast<int>(priority >> 32);
-            //提取该数据起始地址和大小
-            auto data_start = page_start + offset;
-            auto data_size = (payloads[index].size + 7) & (~(7));
-            //将数据从后向前遍历，将其移动到页面末尾
-            const auto new_data_start = page_start + new_data_zone_offset - data_size;
-            os::memory_safe_copy(data_start, new_data_start, data_size);
-            auto new_offset = static_cast<int>(new_data_start - page_start);
-            payloads[index].offset = new_offset;
-            payload_size_count += data_size;
-            new_data_zone_offset -= data_size;
+            auto last_new_data_zone = new_page->data_zone_offset;
+            cursor.get_payload(key,data);
+            assert(new_cursor.insert_payload(key,data) == status_ok);
+            auto size = (data.size+7) & (~7);
+            size_count += size;
+            assert(last_new_data_zone - size == new_page->data_zone_offset);
+            index++;
         }
-        //初始化页头
-        data_zone_offset = new_data_zone_offset;
-        free_fragment_count = 0;
-        free_fragment_offset = 0;
-        // checksum = os::calculate_checksum(this, sizeof(btree_page) - sizeof(uint64));
+        assert(new_page->payload_size_count == size_count);
+        std::memcpy(this,page_buff,page_size);
     }
 
     int btree_page::merge(btree_page* front, btree_page* back)

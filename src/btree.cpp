@@ -6,6 +6,14 @@
 
 namespace iedb
 {
+    void btree::btree_header::init(void*buffer,int root_page_no,int page_count,int free_page_no)
+    {
+        auto header = static_cast<btree_header*>(buffer);
+        header->root_page_no = root_page_no;
+        header->page_count = page_count;
+        header->free_page_no = free_page_no;
+        memcpy(header->magic, btree_header::magic_string,sizeof(btree_header::magic_string));
+    }
     btree::btree(std::unique_ptr<pager>& _pager, const btree_header& header): _status(status::normal),
                                                                               _pager(std::move(_pager)), header(header),
                                                                               ref_count(0)
@@ -26,34 +34,24 @@ namespace iedb
         //如果魔数不匹配，则说明需进行初始化
         if (strcmp(header->magic, btree_header::magic_string) != 0)
         {
+            //需要两个页面，0号页保存元数据，新页作为根页
+            dbPage_ref new_page_ref;
             _pager->begin_write_transaction();
+            _pager->get_new_page(new_page_ref);
+            auto&new_page = new_page_ref->get();
+            //将两个页面均标记为可写
             page.enable_write();
-            btree_page::init(page.get_data(), btree_page_type::leaf, 0, 0);
+            new_page.enable_write();
+            //分别进行初始化
+            auto new_page_no = new_page.get_page_no();
+            btree_header::init(page.get_data(),new_page_no,1,0);
+            btree_page::init(new_page.get_data(), btree_page_type::leaf, 0, 0);
             _pager->commit_phase_one();
             _pager->commit_phase_two();
         }
         return std::unique_ptr<btree>(new btree(_pager, *header));
     }
 
-    /*
-     * 对_pager的0号页面进行初始化，使其作为btree根页
-     */
-    int btree::init(std::unique_ptr<pager>& _pager)
-    {
-        auto _status = _pager->begin_write_transaction();
-        //获取0号页
-        pager::dbPage_ref page_ref;
-        CHECK_ERROR(_pager->get_page(0,page_ref));
-        auto& page = page_ref->get();
-        CHECK_ERROR(page.enable_write());
-        //在0号页面中创建一个新的btree根页
-        auto page_data = page_ref->get().get_data();
-        auto root_page = btree_page::init(page_data, btree_page_type::leaf, 0, 0);
-        //将修改提交
-        CHECK_ERROR(_pager->commit_phase_one());
-        CHECK_ERROR(_pager->commit_phase_two());
-        return status_ok;
-    }
 
     int btree::enable_write()
     {
@@ -129,7 +127,6 @@ namespace iedb
 
     int btree::search_page(uint64 key, std::stack<int>& page_no_stack) const
     {
-        //清空stack
         assert(page_no_stack.empty());
         dbPage_ref page_ref;
         auto page_no = header.root_page_no;
@@ -142,6 +139,7 @@ namespace iedb
         {
             page_no_stack.push(page_no);
             CHECK_ERROR(internal_page_search(page,key,page_no));
+            CHECK_ERROR(_pager->get_page(page_no,page_ref));
             page_data = page_ref->get().get_data();
             page = btree_page::open(page_data);
         }
@@ -196,6 +194,8 @@ namespace iedb
         CHECK_ERROR(btree::search_page(key,stack));
         //向栈顶页面插入数据
         memory_slice current_slice = data;
+        int new_page_no;
+        uint64 middle_key;
         while (stack.empty() == false)
         {
             auto current_page_no = stack.top();
@@ -208,19 +208,53 @@ namespace iedb
             if (_status == status_ok)
                 return status_ok;
             //如果空间不足，则需要进行分裂
-            int new_page_no;
-            uint64 middle_key;
+
             CHECK_ERROR(insert_to_full_page(page_ref,key,current_slice,new_page_no,middle_key));
             current_key = middle_key;
             buff = new_page_no;
-            current_slice.set(&buff, current_key);
+            current_slice.set(&buff,sizeof(buff));
         }
         //连最顶层页面都进行分裂，则需申请新页并修改root页面
+        //TODO:此时需要将次顶层的两个页面即两个节点均添加至根页面中
+        dbPage_ref new_page_ref;
+        CHECK_ERROR(_pager->get_page(new_page_no,new_page_ref));
+        auto prev_no = page_ref->get().get_page_no();
+        auto next_no = prev_no;
+        auto prev_key = middle_key;
+        auto next_key = middle_key;
+        auto page = btree_page::open(page_ref->get().get_data());
+        auto new_page = btree_page::open(new_page_ref->get().get_data());
+        assert(page->next_page == new_page_no || page->prev_page == new_page_no);
+        if (page->next_page)
+        {
+            //说明new_page对应next_page
+            prev_no = page_ref->get().get_page_no();
+            next_no = page->next_page;
+            prev_key = page->payloads[0].key;
+            next_key = new_page->payloads[0].key;
+        }
+        else
+        {
+            //说明new_page对应prev_page
+            prev_no = page->prev_page;
+            next_no = page_ref->get().get_page_no();
+            prev_key = new_page->payloads[0].key;
+            next_key = page->payloads[0].key;
+        }
         CHECK_ERROR(allocate_page(page_ref));
         auto root_page = btree_page::init(page_ref->get().get_data(), btree_page_type::internal, 0, 0);
         header.root_page_no = page_ref->get().get_page_no();
         auto cursor = root_page->get_cursor();
-        return cursor.insert_payload(current_key, current_slice);
+        //将两个节点入新页面
+        current_key = prev_key;
+        current_slice.buffer = & prev_no;
+        current_slice.size = sizeof(prev_no);
+        CHECK_ERROR(cursor.insert_payload(current_key,current_slice));
+        current_key = next_key;
+        current_slice.buffer = &next_no;
+        current_slice.size = sizeof(next_no);
+        CHECK_ERROR(cursor.insert_payload(current_key, current_slice));
+        return status_ok;
     }
 
     int btree::delete_in_leaf_page(int page_no, uint64 key, int& out_merged_page_no, uint64& out_deleted_page_first_key)
@@ -355,6 +389,7 @@ namespace iedb
         auto _cursor = page->get_cursor();
         while (page->type == btree_page_type::internal)
         {
+            _cursor.next();
             _cursor.get_payload(key, slice);
             page_no = *static_cast<int*>(slice.buffer);
             CHECK_ERROR(_pager->get_page(page_no,page_ref));

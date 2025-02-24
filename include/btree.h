@@ -12,7 +12,6 @@ namespace iedb
     class btree
     {
     public:
-
         class cursor
         {
         private:
@@ -33,7 +32,6 @@ namespace iedb
             int prev();
 
         };
-    private:
         enum class status
         {
             error,
@@ -48,12 +46,14 @@ namespace iedb
             int root_page_no;
             int page_count;
             int free_page_no;
+            static void init(void* buffer,int root_page_no,int page_count,int free_page_no);
         };
         struct free_pager_header
         {
             btree_page_type type;
             int next_page;
         };
+    private:
         status _status;
         std::unique_ptr<pager> _pager;
         btree_header header;
@@ -61,7 +61,6 @@ namespace iedb
 /*
  *  该部分负责以页为单位的Btree操作
  */
-        static int init(std::unique_ptr<pager> & _pager);
         int enable_write();
         int commit();
         int allocate_page(pager::dbPage_ref & ref);

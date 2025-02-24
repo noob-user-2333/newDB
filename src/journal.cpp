@@ -89,6 +89,7 @@ namespace iedb {
             if (memcmp(meta.magic,journal_meta::magic_string,sizeof(journal_meta::magic_string)) != 0)
             {
                 //如果两者不等，则说明其非日志文件
+                fprintf(stderr, "journal::begin_read_transaction: bad magic string\n");
                 return status_invalid_journal;
             }
             status = journal_status::read;
@@ -109,8 +110,12 @@ namespace iedb {
         const auto _status = os::read(fd,&page,sizeof(journal_page));
         out_page_no = page.page_no;
         if (_status == status_ok) {
-            if (os::calculate_checksum(buffer,page_size) != page.checksum)
+            auto checksum =os::calculate_checksum(buffer,page_size);
+            if (checksum != page.checksum)
+            {
+                fprintf(stderr, "日志页校验和错误");
                 return status_invalid_journal_page;
+            }
         }
         memcpy(buffer,page.buffer,page_size);
         return _status;

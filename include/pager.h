@@ -49,9 +49,9 @@ namespace iedb
         int64 page_count;
         pager_status status;
         //用于缓存页面并通过页号获取缓存的页面
-        std::list<dbPage> pages;
+        std::list<std::unique_ptr<dbPage>> pages;
         std::vector<dbPage*> writable_pages;
-        std::unordered_map<int, dbPage> map;
+        std::unordered_map<int, dbPage*> map;
 
         int mark_page_writable(dbPage& page);
         pager(int fd,std::unique_ptr<journal>&j,int64 original_file_size);

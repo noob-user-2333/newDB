@@ -9,14 +9,14 @@
 namespace iedb
 {
     static uint64 random[1024 * 1024];
-    static uint8 page_buffer[page_size];
-TEST(btree_page_test,init)
+    static uint8* page_buffer;
+TEST(btree_page,init)
 {
     // auto f = fopen("/dev/shm/data","r");
     // assert(fread(random,1, sizeof(random),f) == sizeof(random));
     // fclose(f);
-    test::get_random(random,sizeof(random));
-    test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
+    page_buffer = static_cast<uint8*>(test::get_random());
+    // test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
     auto next_page = static_cast<int>(random[0]);
     auto prev_page = static_cast<int>(random[1]);
     auto p = btree_page::init(page_buffer,btree_page_type::internal,prev_page,next_page);
@@ -31,7 +31,7 @@ TEST(btree_page_test,init)
     ASSERT_EQ(p->free_fragment_offset,0);
     ASSERT_EQ(p->payload_size_count,0);
 }
-TEST(btree_page_test,insert)
+TEST(btree_page,insert)
 {
     auto p = btree_page::open(page_buffer);
     auto cursor = p->get_cursor();
@@ -45,7 +45,6 @@ TEST(btree_page_test,insert)
         auto key = random[i];
         if (insert_data_size == 0)
             insert_data_size = 1;
-        // insert_data_size = (insert_data_size + 7) & (~(7));
         slice.buffer = random;
         slice.size = insert_data_size;
         payload_size_count += (static_cast<int>(slice.size) + 7) & (~7);
@@ -80,7 +79,7 @@ TEST(btree_page_test,insert)
     }
     ASSERT_EQ(cursor.next(),status_out_of_range);
 }
-TEST(btree_page_test,delete)
+TEST(btree_page,delete)
 {
     auto p = btree_page::open(page_buffer);
     auto cursor = p->get_cursor();
@@ -130,7 +129,7 @@ TEST(btree_page_test,delete)
         cursor.next();
     }
 }
-TEST(btree_page_test,update)
+TEST(btree_page,update)
 {
     auto p = btree_page::open(page_buffer);
     auto cursor = p->get_cursor();
@@ -156,7 +155,10 @@ TEST(btree_page_test,update)
         ASSERT_EQ(cursor.next(),status_ok);
     }
     //随机挑选数据进行修改
-    update_count = static_cast<int>(random[1]) % (p->payload_count - 2);
+    auto mod_num = (p->payload_count - 2);
+    if (mod_num < 2)
+        mod_num = 2;
+    update_count = static_cast<int>(random[1]) % mod_num;
     for (auto times = 0; times < update_count; times++)
     {
         auto index = static_cast<int>(random[times] % p->payload_count) - 2;
@@ -187,7 +189,7 @@ TEST(btree_page_test,update)
         cursor.get_payload(key, slice);
         const auto cmp1 = memcmp(slice.buffer, random, slice.size);
         const auto cmp2 = memcmp(slice.buffer, random + slice.size, slice.size);
-        ASSERT_FALSE(cmp2 && cmp1);
+        // ASSERT_FALSE(cmp2 && cmp1);
         ASSERT_TRUE(cmp1 == 0 || cmp2 == 0);
         cursor.next();
     }

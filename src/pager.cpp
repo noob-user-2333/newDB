@@ -6,7 +6,7 @@
 
 namespace iedb
 {
-    pager::dbPage::dbPage(pager& owner, int page_no):owner(owner),page_no(page_no),data(),writable(false)
+    pager::dbPage::dbPage(pager& owner, int page_no):owner(owner),page_no(page_no),writable(false),data()
     {
         data = std::make_unique<std::array<uint8,page_size>>();
     }
@@ -78,30 +78,46 @@ namespace iedb
             fprintf(stderr,"can't get the file size:%s\n",path.c_str());
             return nullptr;
         }
-        return std::unique_ptr<pager>(new pager(fd, j, original_file_size));
+        auto p = new pager(fd, j, original_file_size);
+        if (p->rollback_back() == status_ok)
+            return std::move(std::unique_ptr<pager>(p));
+        return nullptr;
     }
 
     int pager::get_page(int page_no, dbPage_ref& out_page)
     {
-        auto& page = pages.emplace_back(*this,page_no);
+        auto p = std::make_unique<dbPage>(*this,page_no);
+        auto& page = pages.emplace_back(std::move(p));
         auto offset = static_cast<int64>(page_no) * page_size;
         if (page_no >= page_count)
         {
             out_page.reset();
             return status_out_of_range;
         }
-        auto _status = os::read(fd,offset,page.data->data(),page_size);
+        //先查找是否已缓存该页面
+        auto it = map.find(page_no);
+        if (it != map.end())
+        {
+            out_page = *it->second;
+            return status_ok;
+        }
+        //未缓存则从文件中读取数据
+        auto _status = os::read(fd,offset,page->get_data(),page_size);
         if (_status !=status_ok)
             return _status;
-        out_page = page;
+        out_page = *page;
+        map.insert({page_no,page.get()});
         return status_ok;
     }
     int pager::get_new_page(dbPage_ref& out_page)
     {
         assert(status == pager_status::write_transaction);
-        auto& page = pages.emplace_back(*this,page_count);
+        auto p = std::make_unique<dbPage>(*this,page_count);
+        auto& page = pages.emplace_back(std::move(p));
         page_count++;
-        out_page = page;
+        out_page = *page;
+        map.insert({page->get_page_no(),page.get()});
+        page->enable_write();
         return status_ok;
     }
 
@@ -202,12 +218,17 @@ namespace iedb
         if (_status != status_ok)
             return _status;
         //遍历日志文件
-        char buffer[page_size];
         int page_no;
         for (auto i = 0; i < count; i++)
         {
+            char buffer[page_size];
             _status = j->read_next_page(buffer,page_no);
             if (_status != status_ok)
+                return _status;
+            //在数据文件中写入该页面
+            auto offset = static_cast<int64>(page_no) * page_size;
+            _status = os::write(fd,offset,buffer, page_size);
+            if (_status!= status_ok)
                 return _status;
         }
         _status = os::fdatasync(fd);

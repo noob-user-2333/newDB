@@ -13,6 +13,8 @@ using namespace iedb;
 char path[1024] = "/dev/shm/iedb.db";
 char original_buffer[0x1000];
 char buffer[0x2000];
+int64 a = -1;
+uint64 b = 2;
 int main() {
     // memcpy(path + 5,path,16);
     // printf("%s",path);

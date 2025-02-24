@@ -15,6 +15,28 @@ namespace iedb
         fread(buffer, size, 1, f);
         fclose(f);
     }
+    void* test::get_random(const char*random_file_path)
+    {
+        static bool is_init = false;
+        static char buffer[random_buffer_size];
+        static constexpr char _random_file_path[] = "/dev/shm/random";
+        if (is_init == false)
+        {
+            //从文件中装载随机数据
+            if (random_file_path)
+            {
+                test::read_file(random_file_path,0,sizeof(buffer),buffer);
+            }
+            else
+            {
+                //否则从设备获取随机数
+                get_random(buffer,sizeof(buffer));
+                save_data_to_file(buffer,sizeof(buffer),_random_file_path);
+            }
+        }
+        return buffer;
+    }
+
 
     std::vector<std::string> test::get_sql_from_file(const char* file_path)
     {
@@ -56,6 +78,14 @@ namespace iedb
         auto f = fopen(file_path, "w");
         assert(f);
         assert(fwrite(data, 1,size, f) == size);
+        fclose(f);
+    }
+    void test::read_file(const char* filename, int offset, int len,void*buffer)
+    {
+        const auto f = fopen(filename,"r");
+        assert(f);
+        assert(fseek(f,offset,SEEK_SET) == 0);
+        assert(fread(buffer,1,len,f) == len);
         fclose(f);
     }
 
