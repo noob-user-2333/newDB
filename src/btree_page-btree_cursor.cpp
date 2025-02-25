@@ -6,19 +6,14 @@
 
 namespace iedb
 {
-    int btree_page::btree_cursor::get_index() const
-    {
-        return index;
-    }
-
-    int btree_page::btree_cursor::search_payload_more_equal(uint64 key)
+    int btree_page::btree_cursor::search_payload_last_ge(uint64 key)
     {
         assert(page->payload_count >= 0);
+        //
         for (auto current_index = page->payload_count - 1;current_index >= 0;current_index--)
         {
             const auto& payload = page->payloads[current_index];
-            const auto current_key = payload.key;
-            if (key >= current_key)
+            if ( key >= payload.key)
             {
                 index = current_index;
                 return status_ok;
@@ -26,11 +21,11 @@ namespace iedb
         }
         return status_not_found;
     }
-    int btree_page::btree_cursor::search_payload_less_equal(uint64 key)
+    int btree_page::btree_cursor::search_payload_first_le(uint64 key)
     {
         assert(page->payload_count >= 0);
-        auto status = search_payload_more_equal(key);
-        //如果没有找到，则说明所有payload的key值均大于查找的key
+        auto status = search_payload_last_ge(key);
+        //如果没有找到，则说明key小于所有payload的键值
         if (status != status_ok)
         {
             index = 0;
@@ -40,11 +35,11 @@ namespace iedb
         const auto & payload = page->payloads[index];
         if (payload.key == key)
             return status_ok;
-        //如果key不一致，则index应当为index - 1
-        //如果index为0则说明key大于所有payload的key值
-        if (index == 0)
+        //如果key不一致，则index应当为index + 1
+        //如果index为payload_count - 1则说明key大于所有payload的key值
+        if (index == page->payload_count - 1)
             return status_not_found;
-        index--;
+        index++;
         return status_ok;
     }
     int btree_page::btree_cursor::insert_payload(uint64 key, const memory_slice& data)

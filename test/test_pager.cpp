@@ -10,12 +10,11 @@ namespace iedb
 TEST(pager_test,journal)
 {
         static std::string path = "/dev/shm/paget_test_journal";
-        //确保该文件不存在
+        // 确保该文件不存在
         if (os::access(path.c_str(), os::access_mode_file_exists) == status_ok)
             os::unlink(path.c_str());
         //开启新文件
         auto p = pager::open(path);
-        p->rollback_back();
         /*
          *首先测试连续写入，即生成指定大小文件
          */
@@ -28,7 +27,7 @@ TEST(pager_test,journal)
             auto& page = ref.value().get();
             page.enable_write();
             auto value = static_cast<int64*>(page.get_data());
-            *value = i;
+            *value = page.get_page_no();
         }
         p->commit_phase_one();
         p->commit_phase_two();
@@ -39,7 +38,7 @@ TEST(pager_test,journal)
             p->get_page(i, ref);
             auto& page = ref.value().get();
             auto value = static_cast<int64*>(page.get_data());
-            ASSERT_EQ(*value,i);
+            ASSERT_EQ(*value,page.get_page_no());
         }
         p->release_buffer();
         //测试随机写入
@@ -74,5 +73,6 @@ TEST(pager_test,journal)
             ASSERT_EQ(*value,no + 1);
         }
         p->release_buffer();
+        p = nullptr;
 }
 }

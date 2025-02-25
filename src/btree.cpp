@@ -6,18 +6,24 @@
 
 namespace iedb
 {
-    void btree::btree_header::init(void*buffer,int root_page_no,int page_count,int free_page_no)
+    void btree::btree_header::init(void* buffer, int root_page_no, int page_count, int free_page_no)
     {
         auto header = static_cast<btree_header*>(buffer);
         header->root_page_no = root_page_no;
         header->page_count = page_count;
         header->free_page_no = free_page_no;
-        memcpy(header->magic, btree_header::magic_string,sizeof(btree_header::magic_string));
+        memcpy(header->magic, btree_header::magic_string, sizeof(btree_header::magic_string));
     }
+
     btree::btree(std::unique_ptr<pager>& _pager, const btree_header& header): _status(status::normal),
                                                                               _pager(std::move(_pager)), header(header),
                                                                               ref_count(0)
     {
+    }
+
+    btree_page* btree::open_page(const dbPage_ref& page_ref)
+    {
+        return btree_page::open(page_ref->get().get_data());
     }
 
     std::unique_ptr<btree> btree::open(std::unique_ptr<pager>& _pager)
@@ -38,13 +44,13 @@ namespace iedb
             dbPage_ref new_page_ref;
             _pager->begin_write_transaction();
             _pager->get_new_page(new_page_ref);
-            auto&new_page = new_page_ref->get();
+            auto& new_page = new_page_ref->get();
             //将两个页面均标记为可写
             page.enable_write();
             new_page.enable_write();
             //分别进行初始化
             auto new_page_no = new_page.get_page_no();
-            btree_header::init(page.get_data(),new_page_no,1,0);
+            btree_header::init(page.get_data(), new_page_no, 1, 0);
             btree_page::init(new_page.get_data(), btree_page_type::leaf, 0, 0);
             _pager->commit_phase_one();
             _pager->commit_phase_two();
@@ -112,10 +118,10 @@ namespace iedb
 
     int btree::internal_page_search(btree_page* page, uint64 key, int& out_next_page)
     {
-        assert(page);
+        assert(page && page->type == btree_page_type::internal);
         auto cursor = page->get_cursor();
         auto _status = 0;
-        CHECK_ERROR(cursor.search_payload_more_equal(key));
+        CHECK_ERROR(cursor.search_payload_last_ge(key));
         //如果找到了payload
         memory_slice data{};
         cursor.get_payload(key, data);
@@ -132,54 +138,55 @@ namespace iedb
         auto page_no = header.root_page_no;
         auto _status = 0;
         CHECK_ERROR(_pager->get_page(page_no,page_ref));
-        auto page_data = page_ref->get().get_data();
-        auto page = btree_page::open(page_data);
+        auto page = open_page(page_ref);
         //如果当前页为内部页，则遍历该页获取下一级页面页号
         while (page->type == btree_page_type::internal)
         {
             page_no_stack.push(page_no);
             CHECK_ERROR(internal_page_search(page,key,page_no));
             CHECK_ERROR(_pager->get_page(page_no,page_ref));
-            page_data = page_ref->get().get_data();
-            page = btree_page::open(page_data);
+            page = open_page(page_ref);
         }
         page_no_stack.push(page_no);
         return status_ok;
     }
 
-    int btree::insert_to_full_page(dbPage_ref& page, uint key, const memory_slice& data, int& out_new_page_no,
-                                   uint64& out_new_middle_key)
+    int btree::insert_to_full_page(dbPage_ref& page, const uint64 key, const memory_slice& data,
+                                   int& out_front_page_no, uint64& out_font_first_key,
+                                   int& out_back_page_no, uint64& out_back_first_key)
     {
-        dbPage_ref _next_page;
+        dbPage_ref next_page_ref;
+        dbPage_ref front_page_ref = page;
         auto _status = 0;
         //先获取需要进行处理的两个页面及其它们的页号,然后标记它们为可写
+        CHECK_ERROR(allocate_page(next_page_ref));
         auto front_page_no = page->get().get_page_no();
-        CHECK_ERROR(allocate_page(_next_page));
-        auto next_page_no = _next_page->get().get_page_no();
-        page->get().enable_write();
-        _next_page->get().enable_write();
+        auto back_page_no = next_page_ref->get().get_page_no();
+        front_page_ref->get().enable_write();
+        next_page_ref->get().enable_write();
         //对新生成的页进行初始化,将其挂载到页面链表中
         auto front_page = btree_page::open(page->get().get_data());
+        //先获取next_page初始化需要信息
         auto page_type = front_page->type;
         auto page_next_page_no = front_page->next_page;
-        front_page->next_page = next_page_no;
-        auto next_page = btree_page::init(_next_page->get().get_data(), page_type, front_page_no, page_next_page_no);
-        out_new_page_no = next_page_no;
+        //修改front_page文件头
+        front_page->next_page = back_page_no;
+        auto back_page = btree_page::init(next_page_ref->get().get_data(), page_type, front_page_no, page_next_page_no);
         //对两者页面数据进行平衡
         uint64 middle_key = 0;
-        btree_page::balance(front_page, next_page, middle_key);
+        btree_page::balance(front_page, back_page, middle_key);
         //确定新数据应当插入哪个页面
-        if (key >= middle_key)
-        {
-            auto cursor = next_page->get_cursor();
-            CHECK_ERROR(cursor.insert_payload(key,data));
-        }
-        else
-        {
-            auto cursor = front_page->get_cursor();
-            CHECK_ERROR(cursor.insert_payload(key,data));
-        }
-        out_new_middle_key = middle_key;
+        auto cursor = back_page->get_cursor();
+        //如果key小于middle则应当插入front_page
+        if (key < middle_key)
+            cursor = front_page->get_cursor();
+        //插入不应失败
+        assert(cursor.insert_payload(key,data) == status_ok);
+        //返回
+        out_font_first_key = front_page->payloads[0].key;
+        out_back_first_key = back_page->payloads[0].key;
+        out_back_page_no = back_page_no;
+        out_front_page_no = front_page_no;
         return status_ok;
     }
 
@@ -188,88 +195,85 @@ namespace iedb
         assert(_status == status::write);
         std::stack<int> stack;
         dbPage_ref page_ref;
-        uint64 buff;
         auto _status = 0;
         auto current_key = key;
         CHECK_ERROR(btree::search_page(key,stack));
         //向栈顶页面插入数据
         memory_slice current_slice = data;
-        int new_page_no;
-        uint64 middle_key;
+        uint64 front_key, back_key;
+        int front_no, back_no;
         while (stack.empty() == false)
         {
             auto current_page_no = stack.top();
             stack.pop();
             CHECK_ERROR(_pager->get_page(current_page_no,page_ref));
-            auto page_data = page_ref->get().get_data();
-            auto page = btree_page::open(page_data);
+            auto page = open_page(page_ref);
             auto cursor = page->get_cursor();
             _status = cursor.insert_payload(current_key, current_slice);
             if (_status == status_ok)
                 return status_ok;
             //如果空间不足，则需要进行分裂
-
-            CHECK_ERROR(insert_to_full_page(page_ref,key,current_slice,new_page_no,middle_key));
-            current_key = middle_key;
-            buff = new_page_no;
-            current_slice.set(&buff,sizeof(buff));
+            CHECK_ERROR(insert_to_full_page(page_ref,key,current_slice,front_no,front_key,back_no,back_key));
+            current_key = back_key;
+            current_slice.set(&back_no, sizeof(back_no));
         }
         //连最顶层页面都进行分裂，则需申请新页并修改root页面
-        //TODO:此时需要将次顶层的两个页面即两个节点均添加至根页面中
         dbPage_ref new_page_ref;
-        CHECK_ERROR(_pager->get_page(new_page_no,new_page_ref));
-        auto prev_no = page_ref->get().get_page_no();
-        auto next_no = prev_no;
-        auto prev_key = middle_key;
-        auto next_key = middle_key;
-        auto page = btree_page::open(page_ref->get().get_data());
-        auto new_page = btree_page::open(new_page_ref->get().get_data());
-        assert(page->next_page == new_page_no || page->prev_page == new_page_no);
-        if (page->next_page)
-        {
-            //说明new_page对应next_page
-            prev_no = page_ref->get().get_page_no();
-            next_no = page->next_page;
-            prev_key = page->payloads[0].key;
-            next_key = new_page->payloads[0].key;
-        }
-        else
-        {
-            //说明new_page对应prev_page
-            prev_no = page->prev_page;
-            next_no = page_ref->get().get_page_no();
-            prev_key = new_page->payloads[0].key;
-            next_key = page->payloads[0].key;
-        }
-        CHECK_ERROR(allocate_page(page_ref));
-        auto root_page = btree_page::init(page_ref->get().get_data(), btree_page_type::internal, 0, 0);
+        CHECK_ERROR(allocate_page(new_page_ref));
+        auto root_page = btree_page::init(new_page_ref->get().get_data(), btree_page_type::internal, 0, 0);
         header.root_page_no = page_ref->get().get_page_no();
         auto cursor = root_page->get_cursor();
         //将两个节点入新页面
-        current_key = prev_key;
-        current_slice.buffer = & prev_no;
-        current_slice.size = sizeof(prev_no);
-        CHECK_ERROR(cursor.insert_payload(current_key,current_slice));
-        current_key = next_key;
-        current_slice.buffer = &next_no;
-        current_slice.size = sizeof(next_no);
-        CHECK_ERROR(cursor.insert_payload(current_key, current_slice));
+        //本次插入不应当失败
+        current_key = front_key;
+        current_slice.buffer = &front_no;
+        current_slice.size = sizeof(front_no);
+        assert(cursor.insert_payload(current_key,current_slice) == status_ok);
+        current_key = back_key;
+        current_slice.buffer = &back_no;
+        current_slice.size = sizeof(back_no);
+        assert(cursor.insert_payload(current_key, current_slice) == status_ok);
         return status_ok;
     }
 
+
+    int btree::merge_page(dbPage_ref& merge_page_ref, dbPage_ref& merged_page_ref, uint64& out_merged_page_first_key)
+    {
+        auto front_page = open_page(merge_page_ref);
+        auto back_page = open_page(merged_page_ref);
+        assert(front_page->payloads[0].key < back_page->payloads[0].key);
+        assert(front_page->next_page == merged_page_ref->get().get_page_no());
+        auto _status = 0;
+        //首先判断是否能够进行合并
+        auto payload_size_count = front_page->payload_size_count + back_page->payload_size_count;
+        auto payload_count = front_page->payload_count + back_page->payload_count;
+        auto merged_data_size_count = sizeof(btree_page) + payload_count * sizeof(btree_page::payload_meta) +
+            payload_size_count;
+        if (merged_data_size_count >= page_size)
+            return status_no_space;
+        //开始准备合并
+        CHECK_ERROR(merge_page_ref->get().enable_write());
+        CHECK_ERROR(merged_page_ref->get().enable_write());
+        out_merged_page_first_key = back_page->payloads[0].key;
+        assert(btree_page::merge(front_page,back_page) == status_ok);
+        return status_ok;
+    }
+
+
+    //TODO:注意修改
     int btree::delete_in_leaf_page(int page_no, uint64 key, int& out_merged_page_no, uint64& out_deleted_page_first_key)
     {
         assert(_status == status::write && page_no > 0);
         dbPage_ref page_ref;
         auto _status = 0;
         out_merged_page_no = 0;
+        out_deleted_page_first_key = 0;
         CHECK_ERROR(_pager->get_page(page_no, page_ref));
-        auto page = btree_page::open(page_ref->get().get_data());
+        auto page = open_page(page_ref);
         auto cursor = page->get_cursor();
         //查找并删除该页key对应的payload
-        cursor.search_payload_more_equal(key);
+        cursor.search_payload_last_ge(key);
         cursor.delete_payload();
-        out_deleted_page_first_key = 0;
         //如果删除后该页面包含数据量较少则考虑合并
         if (page->payload_size_count <= page_size / 8)
         {
@@ -371,7 +375,7 @@ namespace iedb
         CHECK_ERROR(_pager->get_page(page_no,page_ref));
         auto page = btree_page::open(page_ref->get().get_data());
         auto page_cursor = page->get_cursor();
-        CHECK_ERROR(page_cursor.search_payload_more_equal(key));
+        CHECK_ERROR(page_cursor.search_payload_first_le(key));
         out_cursor = std::make_unique<cursor>(*this, page_ref, page_cursor);
         return status_ok;
     }

@@ -47,13 +47,13 @@ namespace iedb
         public:
             btree_cursor(btree_page* page, int index) : page(page),index(index)
             {}
-            int get_index() const;
-            //查找键值大于等于key的第一个节点并将当前index设置为该节点
+            [[nodiscard]] inline int get_index() const {return index;};
+            //查找key大于等于键值的第一个节点并将当前index设置为该节点
             //如果找不到则返回status_not_found
-            int search_payload_more_equal(uint64 key);
-            //查找键值小于等于key的最后一个节点并将当前index设置为该节点
+            int search_payload_last_ge(uint64 key);
+            //查找key小于等于键值的最后一个节点并将当前index设置为该节点
             //如果找不到则返回status_not_found
-            int search_payload_less_equal(uint64 key);
+            int search_payload_first_le(uint64 key);
             int insert_payload(uint64 key, const memory_slice & data);
             int next();
             int previous();

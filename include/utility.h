@@ -66,7 +66,10 @@ namespace iedb {
     static constexpr int status_error_file_type = 22;
 
     static constexpr int page_size = 64 * 1024 ;
+
+    static_assert(((page_size - 1) & page_size) == 0 && page_size >= 4096,"页面大小必须是2的幂且不小于4096");
     static constexpr uint64 current_format_version = 0x0001000;
+
 
     static constexpr char config_file_name[] = "settings.json";
 };

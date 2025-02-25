@@ -16,8 +16,7 @@ char buffer[0x2000];
 int64 a = -1;
 uint64 b = 2;
 int main() {
-    // memcpy(path + 5,path,16);
-    // printf("%s",path);
+    // assert(test::run() == 0);
     test::run();
     return 0;
 }

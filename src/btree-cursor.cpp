@@ -21,11 +21,7 @@ namespace iedb
     {
         return owner.commit();
     }
-    int btree::cursor::insert_item(uint64 key, const memory_slice& data) const
-    {
-        assert(owner._status == status::write);
-        return owner.insert(key,data);
-    }
+
     int btree::cursor::delete_item()
     {
         assert(owner._status == status::write);
@@ -49,7 +45,7 @@ namespace iedb
         auto _status = 0;
         get_item(key, slice);
         CHECK_ERROR(delete_item());
-        CHECK_ERROR(insert_item(key,data));
+        CHECK_ERROR(owner.insert(key,data));
         return status_ok;
     }
 
@@ -67,7 +63,8 @@ namespace iedb
         page = get_btree_page(page_ref);
         assert(page->payload_count);
         page_cursor = page->get_cursor();
-        return status_ok;
+        return page_cursor.next();
+
     }
 int btree::cursor::prev()
     {
