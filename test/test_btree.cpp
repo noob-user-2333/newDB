@@ -18,19 +18,19 @@ namespace iedb
     static constexpr char insert_sql[] = "INSERT INTO btree VALUES(?,?);";
     static constexpr char select_sql[] = "SELECT * FROM btree ORDER BY id ASC;";
     static constexpr uint64 key_mask = ~0x8000000000000000UL;
-    static char buffer[page_size];
+    static uint8 buffer[page_size];
     static std::unique_ptr<btree> tree;
     static sqlite3* db;
     static sqlite3_stmt* stmt;
     static bool init_success = false;
     static constexpr char random_path[] = "/dev/shm/btree-random";
-    static constexpr int max_page_count = 1024 * 128;
+    static constexpr int max_page_count = 1024 * 1024;
     TEST(btree, init)
     {
         // test::get_random(buffer, sizeof(buffer));
         // test::save_data_to_file(buffer,sizeof(buffer),random_path);
         test::read_file(random_path,0,sizeof(buffer),buffer);
-        //检查是否存在对应文件夹，如不存在则创建
+        // 检查是否存在对应文件夹，如不存在则创建
         std::filesystem::path _path(path);
         std::filesystem::path directory = _path.parent_path();
         if (os::access(directory.c_str(),os::access_mode_file_exists) != status_ok)
@@ -58,18 +58,16 @@ namespace iedb
     TEST(btree, insert)
     {
         ASSERT_TRUE(init_success);
-        auto random = test::get_random();
-        auto uint64_random = static_cast<const uint64*>(random);
+        auto random = buffer;
+        auto uint64_random = reinterpret_cast<const uint64*>(random);
         auto insert_count =static_cast<int>(uint64_random[0] % max_page_count);
         auto index = 0;
         roaring::Roaring map;
-        std::unique_ptr<btree::cursor> cursor;
-        ASSERT_EQ(tree->get_first_cursor(cursor),status_ok);
-        ASSERT_EQ(cursor->enable_write(),status_ok);
+        ASSERT_EQ(tree->enable_write(),status_ok);
         //准备sqlite3参数化插入
+        // insert_count = 27482;
         sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
         ASSERT_EQ(sqlite3_prepare_v2(db,insert_sql, sizeof(insert_sql), &stmt, nullptr), SQLITE_OK);
-        insert_count = 10;
         for (auto i = 0; i < insert_count;i++,index++)
         {
             //确定将要插入的key
@@ -97,20 +95,22 @@ namespace iedb
 
             memory_slice slice{};
             slice.set((void*)(uint64_random),size);
-            ASSERT_EQ(tree->insert(key,slice),status_ok);
+            ASSERT_EQ(tree->insert(actual_key,slice),status_ok);
         }
         sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
         ASSERT_EQ(sqlite3_finalize(stmt), SQLITE_OK);
-        ASSERT_EQ(cursor->commit(),status_ok);
+        ASSERT_EQ(tree->commit(),status_ok);
 
         //查询数据
+        std::unique_ptr<btree::cursor> cursor;
         //准备数据
         ASSERT_EQ( tree->get_first_cursor(cursor),status_ok);
         ASSERT_EQ(sqlite3_prepare_v2(db,select_sql, sizeof(select_sql), &stmt, nullptr), SQLITE_OK);
-        auto last_key = 0UL;
         index = 0;
         // 逐条获取数据
         while (sqlite3_step(stmt) == SQLITE_ROW) {
+            index++;
+            ASSERT_LE(index,insert_count);
             //获取sqlite数据
             auto key = sqlite3_column_int64(stmt, 0);
             auto data = (sqlite3_column_blob(stmt, 1));
@@ -119,15 +119,14 @@ namespace iedb
             uint64 tree_key;
             memory_slice tree_data{};
 
-            cursor->next();
             cursor->get_item(tree_key,tree_data);
-            ASSERT_LT(last_key,tree_key);
-            last_key = tree_key;
+            cursor->next();
+            // ASSERT_LT(last_key,tree_key);
+            // last_key = tree_key;
             //比较是否一致
-            // ASSERT_EQ(key, tree_key);
-            // ASSERT_EQ(data_size, tree_data.size);
-            // ASSERT_EQ(0, memcmp(data, tree_data.buffer, data_size));
-            index++;
+            ASSERT_EQ(key, tree_key);
+            ASSERT_EQ(data_size, tree_data.size);
+            ASSERT_EQ(0, memcmp(data, tree_data.buffer, data_size));
         }
 
         // 释放资源

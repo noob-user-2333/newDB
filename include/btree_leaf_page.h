@@ -32,7 +32,7 @@ namespace iedb
      *  需要注意，每次释放与获取空间均8byte对其
      *  空闲碎片的前8byte由2个4byte的下一个碎片偏移量和当前碎片大小组成
      */
-    class btree_page
+    class btree_leaf_page
     {
     public:
         /*
@@ -41,11 +41,11 @@ namespace iedb
         class btree_cursor
         {
         private:
-            btree_page* page;
+            btree_leaf_page* page;
             int index;
 
         public:
-            btree_cursor(btree_page* page, int index) : page(page),index(index)
+            btree_cursor(btree_leaf_page* page, int index) : page(page),index(index)
             {}
             [[nodiscard]] inline int get_index() const {return index;};
             //查找key大于等于键值的第一个节点并将当前index设置为该节点
@@ -117,17 +117,17 @@ namespace iedb
         int reserved;
         uint64 checksum;
         payload_meta payloads[];
-        btree_page() = delete;
+        btree_leaf_page() = delete;
 
 
-        static btree_page* init(void* data, btree_page_type type,int prev_page, int next_page);
+        static btree_leaf_page* init(void* data, int prev_page, int next_page);
         //如果checksum和计算出的不同则返回空指针
-        static btree_page* open(void* data);
+        static btree_leaf_page* open(void* data);
         //将两者的payload进行平衡，out_middle_key为last页面的第一个key值
-        static void balance(btree_page* first, btree_page* last,uint64 & out_middle_key);
+        static void balance(btree_leaf_page* first, btree_leaf_page* last,uint64 & out_middle_key);
         //将back指向的页面的内容合并到front中
         //注:若二者不足以合并到同一页面返回status_no_space
-        static int merge(btree_page* front, btree_page* back);
+        static int merge(btree_leaf_page* front, btree_leaf_page* back);
         static btree_page_type get_page_type(const void* page_data);
         void get_payload(int index,uint64 & out_key,memory_slice & data);
         btree_cursor get_cursor();

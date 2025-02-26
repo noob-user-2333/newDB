@@ -5,7 +5,7 @@
 #include "../include/btree.h"
 #include "test.h"
 
-#include "btree_page.h"
+#include "btree_leaf_page.h"
 
 namespace iedb
 {
@@ -13,21 +13,21 @@ namespace iedb
     static uint8 page_buffer[page_size];
     TEST(btree_page, init)
     {
-        // auto f = fopen("/dev/shm/data","r");
-        // assert(fread(random,1, sizeof(random),f) == sizeof(random));
-        // fclose(f);
-        test::get_random(random,sizeof(random));
-        test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
+        auto f = fopen("/dev/shm/data","r");
+        assert(fread(random,1, sizeof(random),f) == sizeof(random));
+        fclose(f);
+        // test::get_random(random,sizeof(random));
+        // test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
         auto next_page = static_cast<int>(random[0]);
         auto prev_page = static_cast<int>(random[1]);
-        auto p = btree_page::init(page_buffer, btree_page_type::internal, prev_page, next_page);
+        auto p = btree_leaf_page::init(page_buffer, prev_page, next_page);
         // ASSERT_EQ(p->checksum,os::calculate_checksum(p,sizeof(btree_page) - sizeof(uint64)));
-        ASSERT_EQ(p->type, btree_page_type::internal);
+        ASSERT_EQ(p->type, btree_page_type::leaf);
         ASSERT_EQ(p->next_page, next_page);
         ASSERT_EQ(p->prev_page, prev_page);
         ASSERT_EQ(p->free_fragment_count, 0);
         ASSERT_EQ(p->payload_count, 0);
-        ASSERT_EQ(p->free_zone_offset, sizeof(btree_page));
+        ASSERT_EQ(p->free_zone_offset, sizeof(btree_leaf_page));
         ASSERT_EQ(p->data_zone_offset, page_size);
         ASSERT_EQ(p->free_fragment_offset, 0);
         ASSERT_EQ(p->payload_size_count, 0);
@@ -35,7 +35,7 @@ namespace iedb
 
     TEST(btree_page, insert)
     {
-        auto p = btree_page::open(page_buffer);
+        auto p = btree_leaf_page::open(page_buffer);
         auto cursor = p->get_cursor();
         auto status = status_ok;
         auto payload_size_count = 0;
@@ -86,7 +86,7 @@ namespace iedb
 
     TEST(btree_page, delete)
     {
-        auto p = btree_page::open(page_buffer);
+        auto p = btree_leaf_page::open(page_buffer);
         auto cursor = p->get_cursor();
         auto last_fragment_offset = 0;
         auto last_payload_size_count = 0;
@@ -137,7 +137,7 @@ namespace iedb
 
     TEST(btree_page, update)
     {
-        auto p = btree_page::open(page_buffer);
+        auto p = btree_leaf_page::open(page_buffer);
         auto cursor = p->get_cursor();
         auto last_fragment_offset = 0;
         auto last_payload_size_count = 0;
@@ -208,8 +208,8 @@ namespace iedb
     TEST(btree_page, balance)
     {
         static uint8 balance_buffer[2][page_size];
-        auto front_page = btree_page::init(balance_buffer[0],btree_page_type::leaf,0,0);
-        auto back_page = btree_page::init(balance_buffer[1], btree_page_type::leaf,0,0);
+        auto front_page = btree_leaf_page::init(balance_buffer[0],0,0);
+        auto back_page = btree_leaf_page::init(balance_buffer[1],0,0);
         auto front_cursor = front_page->get_cursor();
         auto back_cursor = back_page->get_cursor();
         auto status = status_ok;
@@ -262,7 +262,7 @@ namespace iedb
             insert_count++;
         }
         //平衡
-        btree_page::balance(front_page, back_page,key);
+        btree_leaf_page::balance(front_page, back_page,key);
         ASSERT_EQ(back_page->payloads[0].key,key);
         //检验key是否按正常顺序排列
         it = map.begin();
@@ -290,8 +290,8 @@ namespace iedb
     TEST(btree_page,merge)
     {
         static uint8 balance_buffer[2][page_size];
-        auto front_page = btree_page::init(balance_buffer[0],btree_page_type::leaf,0,0);
-        auto back_page = btree_page::init(balance_buffer[1], btree_page_type::leaf,0,0);
+        auto front_page = btree_leaf_page::init(balance_buffer[0],0,0);
+        auto back_page = btree_leaf_page::init(balance_buffer[1], 0,0);
         auto front_cursor = front_page->get_cursor();
         auto back_cursor = back_page->get_cursor();
         auto status = status_ok;
@@ -338,7 +338,7 @@ namespace iedb
             insert_count++;
         }
         //合并
-        btree_page::merge(front_page, back_page);
+        btree_leaf_page::merge(front_page, back_page);
         //检验key是否按正常顺序排列
         it = map.begin();
         front_cursor = front_page->get_cursor();

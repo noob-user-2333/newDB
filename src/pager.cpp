@@ -86,14 +86,6 @@ namespace iedb
 
     int pager::get_page(int page_no, dbPage_ref& out_page)
     {
-        auto p = std::make_unique<dbPage>(*this,page_no);
-        auto& page = pages.emplace_back(std::move(p));
-        auto offset = static_cast<int64>(page_no) * page_size;
-        if (page_no >= page_count)
-        {
-            out_page.reset();
-            return status_out_of_range;
-        }
         //先查找是否已缓存该页面
         auto it = map.find(page_no);
         if (it != map.end())
@@ -101,10 +93,19 @@ namespace iedb
             out_page = *it->second;
             return status_ok;
         }
-        //未缓存则从文件中读取数据
-        auto _status = os::read(fd,offset,page->get_data(),page_size);
+        //若未缓存则从文件中读取数据
+        auto offset = static_cast<int64>(page_no) * page_size;
+        if (page_no >= page_count)
+        {
+            out_page.reset();
+            return status_out_of_range;
+        }
+        auto p = std::make_unique<dbPage>(*this,page_no);
+        auto _status = os::read(fd,offset,p->get_data(),page_size);
         if (_status !=status_ok)
             return _status;
+        //仅当数据读取成功时放入缓存
+        auto& page = pages.emplace_back(std::move(p));
         out_page = *page;
         map.insert({page_no,page.get()});
         return status_ok;
@@ -161,7 +162,7 @@ namespace iedb
             return _status;
         }
         //写入页面
-        for (auto  writable_page : writable_pages)
+        for (auto writable_page : writable_pages)
         {
             auto offset = static_cast<int64>(writable_page->page_no) * page_size;
             _status = os::write(fd,offset,writable_page->data->data(), page_size);
@@ -170,12 +171,16 @@ namespace iedb
                 status = pager_status::error;
                 return _status;
             }
+            writable_page->writable = false;
         }
         _status = os::fdatasync(fd);
         if (_status != status_ok)
             status = pager_status::error;
         else
+        {
+            writable_pages.clear();
             status = pager_status::commit;
+        }
         return _status;
     }
      /*

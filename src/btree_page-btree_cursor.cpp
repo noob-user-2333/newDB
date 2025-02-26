@@ -2,11 +2,11 @@
 // Created by user on 25-2-17.
 //
 
-#include "btree_page.h"
+#include "btree_leaf_page.h"
 
 namespace iedb
 {
-    int btree_page::btree_cursor::search_payload_last_ge(uint64 key)
+    int btree_leaf_page::btree_cursor::search_payload_last_ge(uint64 key)
     {
         assert(page->payload_count >= 0);
         //
@@ -21,7 +21,7 @@ namespace iedb
         }
         return status_not_found;
     }
-    int btree_page::btree_cursor::search_payload_first_le(uint64 key)
+    int btree_leaf_page::btree_cursor::search_payload_first_le(uint64 key)
     {
         assert(page->payload_count >= 0);
         auto status = search_payload_last_ge(key);
@@ -42,7 +42,7 @@ namespace iedb
         index++;
         return status_ok;
     }
-    int btree_page::btree_cursor::insert_payload(uint64 key, const memory_slice& data)
+    int btree_leaf_page::btree_cursor::insert_payload(uint64 key, const memory_slice& data)
     {
         assert(data.size > 0);
         //检查该页是否存在相同的key
@@ -67,35 +67,35 @@ namespace iedb
         return status_ok;
     }
 
-    int btree_page::btree_cursor::next()
+    int btree_leaf_page::btree_cursor::next()
     {
         if (index + 1 >= page->payload_count)
             return status_out_of_range;
         index++;
         return status_ok;
     }
-    int btree_page::btree_cursor::previous()
+    int btree_leaf_page::btree_cursor::previous()
     {
         if (index == 0  || page->payload_count < index - 1)
             return status_out_of_range;
         index--;
         return status_ok;
     }
-    int btree_page::btree_cursor::first()
+    int btree_leaf_page::btree_cursor::first()
     {
         if (page->payload_count == 0)
             return status_out_of_range;
         index = 0;
         return status_ok;
     }
-    int btree_page::btree_cursor::last()
+    int btree_leaf_page::btree_cursor::last()
     {
         if (page->payload_count == 0)
             return status_out_of_range;
         index = page->payload_count - 1;
         return status_ok;
     }
-    void btree_page::btree_cursor::get_payload(uint64& out_key, memory_slice& out_data) const
+    void btree_leaf_page::btree_cursor::get_payload(uint64& out_key, memory_slice& out_data) const
     {
         assert(index >= 0 && index < page->payload_count);
         const auto& payload = page->payloads[index];
@@ -103,7 +103,7 @@ namespace iedb
         out_data.set(reinterpret_cast<uint8*>(page) + payload.offset, payload.size);
     }
 
-    int btree_page::btree_cursor::update_payload(const memory_slice& new_data)
+    int btree_leaf_page::btree_cursor::update_payload(const memory_slice& new_data)
     {
         //首先确定当前使用空间与new_data是否一致
         auto& payload = page->payloads[index];
@@ -152,7 +152,7 @@ namespace iedb
     }
 
 
-    int btree_page::btree_cursor::delete_payload()
+    int btree_leaf_page::btree_cursor::delete_payload()
     {
         //先释放空间
         const auto& payload = page->payloads[index];

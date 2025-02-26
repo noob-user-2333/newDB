@@ -1,34 +1,34 @@
 //
 // Created by user on 25-2-16.
 //
-#include "btree_page.h"
+#include "btree_leaf_page.h"
 #include "os.h"
 
 namespace iedb
 {
-    int btree_page::compute_max_free_space() const
+    int btree_leaf_page::compute_max_free_space() const
     {
         assert(data_zone_offset >= free_zone_offset);
         return data_zone_offset - free_zone_offset + free_fragment_count;
     }
 
-    int btree_page::compute_free_space() const
+    int btree_leaf_page::compute_free_space() const
     {
         assert(data_zone_offset >= free_zone_offset);
         return data_zone_offset - free_zone_offset;
     }
 
-    uint64 btree_page::compute_checksum() const
+    uint64 btree_leaf_page::compute_checksum() const
     {
-        return os::calculate_checksum(this, sizeof(btree_page) - sizeof(uint64));
+        return os::calculate_checksum(this, sizeof(btree_leaf_page) - sizeof(uint64));
     }
 
-    int btree_page::compute_free_space_without_offset(int payload_count)
+    int btree_leaf_page::compute_free_space_without_offset(int payload_count)
     {
-        return page_size - static_cast<int>(sizeof(btree_page)) - static_cast<int>(payload_count * sizeof(int));
+        return page_size - static_cast<int>(sizeof(btree_leaf_page)) - static_cast<int>(payload_count * sizeof(int));
     }
 
-    int btree_page::compute_slice_offset_for_page(const memory_slice& slice) const
+    int btree_leaf_page::compute_slice_offset_for_page(const memory_slice& slice) const
     {
         auto start = static_cast<const void*>(this);
         const void* slice_data = slice.buffer;
@@ -37,7 +37,7 @@ namespace iedb
         return static_cast<int>(offset);
     }
 
-    void btree_page::get_payload(int index, memory_slice& slice)
+    void btree_leaf_page::get_payload(int index, memory_slice& slice)
     {
         assert(index >= 0 && index < payload_count);
         auto start = static_cast<uint8*>(static_cast<void*>(this));
@@ -49,12 +49,12 @@ namespace iedb
     }
 
 
-    btree_page* btree_page::init(void* data, btree_page_type type,int prev_page, int next_page)
+    btree_leaf_page* btree_leaf_page::init(void* data,int prev_page, int next_page)
     {
-        auto result = static_cast<btree_page*>(data);
-        result->type = type;
+        auto result = static_cast<btree_leaf_page*>(data);
+        result->type = btree_page_type::leaf;
         result->data_zone_offset = page_size;
-        result->free_zone_offset = sizeof(btree_page);
+        result->free_zone_offset = sizeof(btree_leaf_page);
         result->next_page = next_page;
         result->prev_page = prev_page;
         result->payload_count = 0;
@@ -65,9 +65,10 @@ namespace iedb
         return result;
     }
 
-    btree_page* btree_page::open(void* data)
+    btree_leaf_page* btree_leaf_page::open(void* data)
     {
-        auto result = static_cast<btree_page*>(data);
+        auto result = static_cast<btree_leaf_page*>(data);
+        assert(result->type == btree_page_type::leaf);
         // if (os::calculate_checksum(data, sizeof(btree_page) - sizeof(uint64)) != result->checksum)
         // {
             // fprintf(stderr, "当前btree页面校验和有误\n");
@@ -76,12 +77,12 @@ namespace iedb
         return result;
     }
 
-    btree_page_type btree_page::get_page_type(const void* page_data)
+    btree_page_type btree_leaf_page::get_page_type(const void* page_data)
     {
         return *static_cast<const btree_page_type*>(page_data);
     }
 
-    int btree_page::allocate_stack_space(int size, int& out_offset)
+    int btree_leaf_page::allocate_stack_space(int size, int& out_offset)
     {
         auto free_space = compute_free_space() - static_cast<int>(sizeof(payload_meta));
         if (free_space < size)
@@ -93,7 +94,7 @@ namespace iedb
         return status_ok;
     }
 
-    int btree_page::allocate_fragment_space(int size, int& out_offset)
+    int btree_leaf_page::allocate_fragment_space(int size, int& out_offset)
     {
         assert(size >= 0 && (size & 7) == 0);
         auto page_start = static_cast<uint8*>(static_cast<void*>(this));
@@ -138,7 +139,7 @@ namespace iedb
         return status_no_space;
     }
 
-    int btree_page::allocate_space(int size, int& out_offset)
+    int btree_leaf_page::allocate_space(int size, int& out_offset)
     {
         assert(size > 0 && size < page_size / 4);
         //由于释放时需至少8byte存放信息，故每次分配至少需要8byte
@@ -168,9 +169,9 @@ namespace iedb
     }
 
 
-    int btree_page::insert_payload_meta(uint64 key, int offset, int size)
+    int btree_leaf_page::insert_payload_meta(uint64 key, int offset, int size)
     {
-        assert(offset > sizeof(btree_page) && size > 0);
+        assert(offset > sizeof(btree_leaf_page) && size > 0);
         if (free_zone_offset + sizeof(payload_meta) > data_zone_offset)
             return status_no_space;
         //查找应该插入的位置
@@ -192,7 +193,7 @@ namespace iedb
         return status_ok;
     }
 
-    void btree_page::delete_payload_meta(int index)
+    void btree_leaf_page::delete_payload_meta(int index)
     {
         assert(index >= 0 && index < payload_count);
         for (auto i = index; i < payload_count; i++)
@@ -201,7 +202,7 @@ namespace iedb
         free_zone_offset -= sizeof(payload_meta);
     }
 
-    void btree_page::update_payload_meta(int index, int offset, int size)
+    void btree_leaf_page::update_payload_meta(int index, int offset, int size)
     {
         assert(index >= 0 && index < payload_count);
         auto& payload = payloads[index];
@@ -209,7 +210,7 @@ namespace iedb
         payload.size = size;
     }
 
-    void btree_page::free_space(int offset, int size)
+    void btree_leaf_page::free_space(int offset, int size)
     {
         auto space_size = (size + 7) & (~(0x7));
         auto start = static_cast<uint8*>(static_cast<void*>(this));
@@ -281,10 +282,10 @@ namespace iedb
     //     // checksum = os::calculate_checksum(this, sizeof(btree_page) - sizeof(uint64));
     // }
 
-    void btree_page::vacuum()
+    void btree_leaf_page::vacuum()
     {
         uint8 page_buff[page_size];
-        auto new_page = btree_page::init(page_buff,type,prev_page,next_page);
+        auto new_page = btree_leaf_page::init(page_buff,prev_page,next_page);
         auto new_cursor = new_page->get_cursor();
         auto cursor = get_cursor();
         auto status = 0;
@@ -307,13 +308,13 @@ namespace iedb
         std::memcpy(this,page_buff,page_size);
     }
 
-    int btree_page::merge(btree_page* front, btree_page* back)
+    int btree_leaf_page::merge(btree_leaf_page* front, btree_leaf_page* back)
     {
         assert(front && back && front->type == back->type);
         auto payload_count = front->payload_count + back->payload_count;
         auto payload_size_count = front->payload_size_count + back->payload_size_count;
         //确定是否由足够空间用于合并
-        auto size_count = sizeof(btree_page) + sizeof(payload_meta) * payload_count + payload_size_count;
+        auto size_count = sizeof(btree_leaf_page) + sizeof(payload_meta) * payload_count + payload_size_count;
         if (size_count >= page_size)
             return status_no_space;
         //开始将back内容合并到front中
@@ -337,7 +338,7 @@ namespace iedb
         return status_ok;
     }
 
-    void btree_page::balance(btree_page* first, btree_page* last, uint64& out_middle_key)
+    void btree_leaf_page::balance(btree_leaf_page* first, btree_leaf_page* last, uint64& out_middle_key)
     {
         assert(first && last);
         //首先对二者页面空间进行整理
@@ -380,7 +381,7 @@ namespace iedb
         out_middle_key = key;
     }
 
-    void btree_page::get_payload(int index, uint64& out_key, memory_slice& data)
+    void btree_leaf_page::get_payload(int index, uint64& out_key, memory_slice& data)
     {
         assert(index >= 0 && index < payload_count);
         auto offset = payloads[index].offset;
@@ -390,7 +391,7 @@ namespace iedb
         data.set(data_start,size);
     }
 
-    btree_page::btree_cursor btree_page::get_cursor()
+    btree_leaf_page::btree_cursor btree_leaf_page::get_cursor()
     {
         return {this, -1};
     }
