@@ -378,6 +378,7 @@ namespace iedb
         // 找到新的中间key值
         last_cursor.first();
         last_cursor.get_payload(key,slice);
+        assert(first->payloads[first->payload_count - 1].key < last->payloads[0].key);
         out_middle_key = key;
     }
 

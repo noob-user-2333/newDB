@@ -53,8 +53,8 @@ namespace iedb
         auto split_index = front_page->key_count / 2;
         auto move_key_count = front_page->key_count - split_index - 1;
         out_key = front_page->keys[split_index];
-        std::memcpy(front_page->keys.data() + split_index + 1,back_page->keys.data(),move_key_count * sizeof(uint64));
-        std::memcpy(front_page->pages_no.data() + split_index + 1,back_page->pages_no.data(),(move_key_count + 1) * sizeof(int));
+        std::memcpy(back_page->keys.data(),front_page->keys.data() + split_index + 1,move_key_count * sizeof(uint64));
+        std::memcpy(back_page->pages_no.data(),front_page->pages_no.data() + split_index + 1,(move_key_count + 1) * sizeof(int));
         back_page->key_count = move_key_count;
         front_page->key_count = split_index;
     }

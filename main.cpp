@@ -21,6 +21,6 @@ int main() {
     // std::cout << test1.data();
 
     // assert(test::run() == 0);
-    test::run();
+    assert(test::run() == 0);
     return 0;
 }

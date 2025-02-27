@@ -128,12 +128,14 @@ namespace iedb
         //如果当前页为内部页，则遍历该页获取下一级页面页号
         while (type == btree_page_type::internal)
         {
+            assert(page_no > 0 && page_no < _pager->get_page_count());
             page_no_stack.push(page_no);
             auto page = btree_internal_page::open(page_ref->get().get_data());
             page->search(key, page_no);
             CHECK_ERROR(_pager->get_page(page_no,page_ref));
             type = get_page_type(page_ref);
         }
+        assert(page_no > 0 && page_no < _pager->get_page_count());
         assert(type == btree_page_type::leaf);
         page_no_stack.push(page_no);
         return status_ok;
@@ -225,6 +227,7 @@ namespace iedb
         CHECK_ERROR(insert_to_full_leaf_page(page_ref,key,current_slice,back_no,back_key));
         while (stack.empty() == false)
         {
+            //从此处开始，将key与页号相关信息插入内部页
             current_page_no = stack.top();
             stack.pop();
             CHECK_ERROR(_pager->get_page(current_page_no,page_ref));
@@ -234,7 +237,7 @@ namespace iedb
             if (_status == status_ok)
                 return status_ok;
             //当前插入内部页空间不足，需要分裂并将结果插入上一层页
-            CHECK_ERROR(insert_to_full_internal_page(page_ref,back_key, front_no, back_no, front_key, front_no, back_no));
+            CHECK_ERROR(insert_to_full_internal_page(page_ref,back_key, front_no, back_no, back_key, front_no, back_no));
         }
         //连最顶层页面都进行分裂，则需申请新页并修改root页面
         dbPage_ref new_page_ref;
@@ -268,71 +271,6 @@ namespace iedb
     //     return status_ok;
     // }
     //
-    //
-    // int btree::delete_in_leaf_page(int page_no, uint64 key, int& out_merged_page_no, uint64& out_deleted_page_first_key)
-    // {
-    //     assert(_status == status::write && page_no > 0);
-    //     dbPage_ref page_ref;
-    //     auto _status = 0;
-    //     out_merged_page_no = 0;
-    //     out_deleted_page_first_key = 0;
-    //     CHECK_ERROR(_pager->get_page(page_no, page_ref));
-    //     auto page = open_page(page_ref);
-    //     auto cursor = page->get_cursor();
-    //     //查找并删除该页key对应的payload
-    //     cursor.search_payload_last_ge(key);
-    //     cursor.delete_payload();
-    //     //如果删除后该页面包含数据量较少则考虑合并
-    //     if (page->payload_size_count <= page_size / 8)
-    //     {
-    //         auto next_page_no = 0;
-    //         auto prev_page_no = 0;
-    //         auto next_page = page;
-    //         auto prev_page = page;
-    //         auto next_page_ref = page_ref;
-    //         auto prev_page_ref = page_ref;
-    //         if (page->next_page)
-    //         {
-    //             next_page_no = page->next_page;
-    //             prev_page_no = page_ref->get().get_page_no();
-    //             CHECK_ERROR(_pager->get_page(page->next_page,next_page_ref));
-    //             next_page = btree_leaf_page::open(next_page_ref->get().get_data());
-    //             prev_page = page;
-    //         }
-    //         else if (page->prev_page)
-    //         {
-    //             next_page_no = page_ref->get().get_page_no();
-    //             prev_page_no = page->prev_page;
-    //             CHECK_ERROR(_pager->get_page(page->prev_page,prev_page_ref));
-    //             prev_page = btree_leaf_page::open(prev_page_ref->get().get_data());
-    //             next_page = page;
-    //         }
-    //         else
-    //         {
-    //             //当不存在后续页面时则直接返回
-    //             return status_ok;
-    //         }
-    //         //检查是否需要合并
-    //         //如果两个页面总数据量小于 3 / 4 个页面，则合并
-    //         if (next_page->payload_size_count + prev_page->payload_size_count <= page_size / 4 * 3)
-    //         {
-    //             out_merged_page_no = next_page_no;
-    //             //保存next_page的第一个key用于后续叶节点删除
-    //             out_deleted_page_first_key = next_page->payloads[0].key;
-    //             //将两个页面标记为可写
-    //             prev_page_ref->get().enable_write();
-    //             next_page_ref->get().enable_write();
-    //             //合并
-    //             CHECK_ERROR(btree_leaf_page::merge(prev_page,next_page));
-    //             // 删除next_page
-    //             release_page(next_page_ref);
-    //             // 如果prev_page的next_page和prev_page是0，说明prev_page是最顶层页面，需要修改root_page_no
-    //             if (prev_page->next_page == 0 && prev_page->prev_page == 0)
-    //                 header.root_page_no = prev_page_ref->get().get_page_no();
-    //         }
-    //     }
-    //     return status_ok;
-    // }
     //
     //
     // int btree::delete_item(uint64 key)

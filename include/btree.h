@@ -75,9 +75,8 @@ namespace iedb
         //其中merged_page表示合并过程中被释放的页面,其数据将转移到merge_page
         static int merge_page(dbPage_ref&merge_page_ref,dbPage_ref&merged_page_ref,uint64&out_merged_page_first_key);
 
-        int delete_in_leaf_page(int page_no,uint64 key,int&out_merged_page_no,uint64& out_deleted_page_first_key);
 
-        int delete_item(uint64 key);
+        int remove(uint64 key);
 
         btree(std::unique_ptr<pager>& _pager, const btree_header&header);
 

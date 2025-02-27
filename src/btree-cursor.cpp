@@ -63,7 +63,7 @@ namespace iedb
         page = get_btree_page(page_ref);
         assert(page->payload_count);
         page_cursor = page->get_cursor();
-        return page_cursor.next();
+        return page_cursor.first();
 
     }
 int btree::cursor::prev()

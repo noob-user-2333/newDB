@@ -13,11 +13,11 @@ namespace iedb
     static uint8 page_buffer[page_size];
     TEST(btree_page, init)
     {
-        auto f = fopen("/dev/shm/data","r");
-        assert(fread(random,1, sizeof(random),f) == sizeof(random));
-        fclose(f);
-        // test::get_random(random,sizeof(random));
-        // test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
+        // auto f = fopen("/dev/shm/data","r");
+        // assert(fread(random,1, sizeof(random),f) == sizeof(random));
+        // fclose(f);
+        test::get_random(random,sizeof(random));
+        test::save_data_to_file(random,sizeof(random),"/dev/shm/data");
         auto next_page = static_cast<int>(random[0]);
         auto prev_page = static_cast<int>(random[1]);
         auto p = btree_leaf_page::init(page_buffer, prev_page, next_page);

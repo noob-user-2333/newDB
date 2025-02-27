@@ -9,6 +9,8 @@ namespace iedb
     static uint64 random[1024 * 1024];
     static uint8 page_buffer[page_size];
     static constexpr char path[] = "/dev/shm/btree_internal_page";
+    static uint64 keys[page_size];
+    static int pages_no[page_size];
     TEST(btree_internal_page, init)
     {
         // auto f = fopen(path,"r");
@@ -24,6 +26,12 @@ namespace iedb
         ASSERT_EQ(p->next_page, next_page);
         ASSERT_EQ(p->prev_page, prev_page);
         ASSERT_EQ(p->key_count, 0);
+        for (auto i = 0; i < page_size;i++)
+        {
+            keys[i] = i + 1;
+            pages_no[i] = i + 1;
+        }
+
     }
 
     TEST(btree_internal_page, insert)
@@ -37,8 +45,15 @@ namespace iedb
 
     }
 
+
+
+
+
     TEST(btree_internal_page, balance)
     {
+
+
+
 
     }
     TEST(btree_internal_page,merge)

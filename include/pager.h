@@ -60,6 +60,7 @@ namespace iedb
         using dbPage_ref = std::optional<std::reference_wrapper<dbPage>>;
         pager(pager&) = delete;
         static std::unique_ptr<pager> open(const std::string& path);
+        constexpr int64 get_page_count() const{return  page_count;}
         //用于数据页面管理
         int get_page(int page_no,dbPage_ref& out_page);
         int get_new_page(dbPage_ref& out_page);
