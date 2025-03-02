@@ -80,18 +80,17 @@ namespace iedb
         std::memcpy(front_page->keys.data(),buff,target_key_count * sizeof(uint64));
         out_new_middle_key = buff[target_key_count];
         std::memcpy(back_page->keys.data(),buff + target_key_count + 1,(index - target_key_count - 1) * sizeof(uint64));
-        back_page->key_count = index - target_key_count - 1;
-        front_page->key_count = target_key_count;
+        auto back_key_count = index - target_key_count - 1;
+        auto front_key_count = target_key_count;
         //提取page_no
         auto no_buff = reinterpret_cast<int*>(buff);
         std::memcpy(front_page->pages_no.data(), no_buff, (front_page->key_count + 1) * sizeof(int));
-        index = front_page->key_count + 1;
         std::memcpy(back_page->pages_no.data(), no_buff + index, (back_page->key_count + 1) * sizeof(int));
-        index += back_page->key_count + 1;
         //均分page_no
+        front_page->key_count = front_key_count;
+        back_page->key_count = back_key_count;
         std::memcpy(front_page->pages_no.data(), no_buff, (front_page->key_count + 1) * sizeof(int));
         std::memcpy(back_page->pages_no.data(),no_buff + front_page->key_count + 1,(back_page->key_count + 1)*sizeof(int));
-        assert(index == front_page->key_count + back_page->key_count + 2);
     }
 
 
@@ -120,7 +119,7 @@ namespace iedb
                 break;
         }
         //由于分裂时申请新页会作为back_page,故内部节点必定保存有front_page的页号
-        //不应当存在重复key且两者的
+        //不应当存在重复key
         assert(keys[index] != key && front_page_no == pages_no[index]);
         //移动
         for (auto i = key_count - 1;i >= index;i--)
@@ -147,11 +146,28 @@ namespace iedb
         }
         out_page_no = pages_no[key_count];
     }
-    int btree_internal_page::remove(int page_no)
+    int btree_internal_page::search(int front_page_no, int back_page_no, uint64& out_key) const
+    {
+        assert(key_count > 0 && key_count <= key_capacity);
+        for (auto i = 0; i < key_count; i++)
+        {
+            if (pages_no[i] == front_page_no)
+            {
+                assert(pages_no[i + 1] == back_page_no);
+                out_key = keys[i];
+                return status_ok;
+            }
+        }
+        return status_not_found;
+    }
+
+    void btree_internal_page::remove(int page_no)
     {
         assert(page_no >= 0);
         auto index = 0;
-        for (index = 0; index <= key_count; index++)
+        //由于所有合并均为由后向合并，故不应当存在删除顶部页面的情况
+        assert(pages_no[0] != page_no);
+        for (index = 1; index <= key_count; index++)
         {
             if (pages_no[index] == page_no)
             {
@@ -160,11 +176,22 @@ namespace iedb
                 {
                     for (auto i = index; i < key_count; i++)
                     {
-                        keys[i] = keys[i + 1];
-                        pages_no[i] = pages_no[i + 1];
+                        keys.at(i - 1) = keys.at(i);
+                        pages_no.at(i) = pages_no.at(i + 1);
                     }
                 }
                 key_count--;
+            }
+        }
+    }
+    int btree_internal_page::update(uint64 new_key, int prev_page_no, int next_page_no)
+    {
+        for (auto i = 0;i < key_count;i++)
+        {
+            if (pages_no[i] == prev_page_no)
+            {
+                assert(pages_no[i + 1] == next_page_no);
+                keys[i] = new_key;
                 return status_ok;
             }
         }

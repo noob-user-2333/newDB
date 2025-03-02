@@ -349,8 +349,9 @@ namespace iedb
         auto first_cursor = first->get_cursor();
         uint64 key;
         memory_slice slice{};
+        bool unused;
         //确定payload从哪个页面移动向哪一个页面
-        if (first->payload_size_count < last->payload_count)
+        if (first->payload_size_count < last->payload_size_count)
         {
             //从last第一个payload开始，不断移动数据到first
             last_cursor.first();
@@ -358,7 +359,7 @@ namespace iedb
             {
                 last_cursor.get_payload(key,slice);
                 first_cursor.insert_payload(key,slice);
-                last_cursor.delete_payload();
+                last_cursor.delete_payload(unused);
             }
         }
         else
@@ -369,7 +370,7 @@ namespace iedb
             {
                 first_cursor.get_payload(key, slice);
                 last_cursor.insert_payload(key, slice);
-                first_cursor.delete_payload();
+                first_cursor.delete_payload(unused);
             }
         }
         //整理页面空间

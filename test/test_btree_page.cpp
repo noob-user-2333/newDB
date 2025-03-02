@@ -117,7 +117,8 @@ namespace iedb
             offset = static_cast<int>(reinterpret_cast<uint64>(slice.buffer) - reinterpret_cast<uint64>(page_buffer));
             auto actual_slice_size = (slice.size + 7) & (~7);
             //删除数据
-            ASSERT_EQ(cursor.delete_payload(), status_ok);
+            bool unused;
+            cursor.delete_payload(unused);
             ASSERT_EQ(ori_payload_count - 1 - times, p->payload_count);
             //检查payload_size_count和free_fragment_size_count是否正常
             ASSERT_EQ(last_payload_size_count - actual_slice_size, p->payload_size_count);

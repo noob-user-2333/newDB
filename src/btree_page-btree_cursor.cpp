@@ -124,7 +124,8 @@ namespace iedb
         if (max_free_space + payload.size  <= static_cast<int>(new_data.size))
             return status_no_space;
         //先删除再插入，不应当存在失败的情况
-        assert(delete_payload() == status_ok);
+        bool unused;
+        delete_payload(unused);
         assert(insert_payload(key,new_data) == status_ok);
         //还原索引，使其对应原key
         for (auto i = 0;i < page->payload_count;i++)
@@ -152,7 +153,7 @@ namespace iedb
     }
 
 
-    int btree_leaf_page::btree_cursor::delete_payload()
+    void btree_leaf_page::btree_cursor::delete_payload(bool & out_need_adjust)
     {
         //先释放空间
         const auto& payload = page->payloads[index];
@@ -161,7 +162,10 @@ namespace iedb
         page->delete_payload_meta(index);
         if (index >= page->payload_count)
             index--;
-        return status_ok;
+        if (page->payload_size_count < page_size / 4)
+            out_need_adjust = true;
+        else
+            out_need_adjust = false;
     }
 
 

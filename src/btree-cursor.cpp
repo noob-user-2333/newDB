@@ -22,16 +22,20 @@ namespace iedb
         return owner.commit();
     }
 
-    // int btree::cursor::delete_item()
-    // {
-    //     assert(owner._status == status::write);
-    //     auto page= get_btree_page(page_ref);
-    //     page_ref->get().enable_write();
-    //     uint64 key;
-    //     memory_slice unused{};
-    //     page_cursor.get_payload(key,unused);
-    //     return owner.delete_item(key);
-    // }
+    int btree::cursor::remove()
+    {
+        assert(owner._status == status::write);
+        auto _status = 0;
+        CHECK_ERROR(page_ref->get().enable_write());
+        bool need_adjust;
+        uint64 key;
+        memory_slice unused{};
+        page_cursor.get_payload(key,unused);
+        page_cursor.delete_payload(need_adjust);
+        if (need_adjust)
+            return owner.adjust_tree(key);
+        return status_ok;
+    }
     void btree::cursor::get_item(uint64&out_key,memory_slice& out_data) const
     {
         page_cursor.get_payload(out_key,out_data);

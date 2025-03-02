@@ -61,7 +61,8 @@ namespace iedb
             int first();
             void get_payload(uint64&out_key,memory_slice&out_data) const;
             int update_payload(const memory_slice & new_data);
-            int delete_payload();
+            //若删除后payload_size_count < page_size /4，则认为需要进行调整，并输出标志
+            void delete_payload(bool & out_need_adjust);
         };
         struct payload_meta
         {

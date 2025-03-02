@@ -27,7 +27,9 @@ namespace iedb
         static void balance(btree_internal_page * front_page,btree_internal_page * back_page,uint64 middle_key,uint64&out_new_middle_key);
         int insert(uint64 key,int front_page_no,int back_page_no);
         void search(uint64 key,int & out_page_no) const;
-        int remove(int page_no);
+        int search(int front_page_no,int back_page_no,uint64 & out_key) const;
+        void remove(int page_no);
+        int update(uint64 new_key,int prev_page_no,int next_page_no);
     };
 }
 

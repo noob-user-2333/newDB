@@ -25,6 +25,14 @@ namespace iedb
     {
         return *static_cast<btree_page_type*>(page->get().get_data());
     }
+    constexpr btree_internal_page* btree::open_internal_page(const dbPage_ref& page_ref)
+    {
+        return btree_internal_page::open(page_ref->get().get_data());
+    }
+    constexpr btree_leaf_page* btree::open_leaf_page(const dbPage_ref& page_ref)
+    {
+        return btree_leaf_page::open(page_ref->get().get_data());
+    }
 
 
     std::unique_ptr<btree> btree::open(std::unique_ptr<pager>& _pager)
@@ -140,8 +148,9 @@ namespace iedb
         page_no_stack.push(page_no);
         return status_ok;
     }
+
     int btree::insert_to_full_leaf_page(dbPage_ref& page_ref, uint64 key, const memory_slice& data,
-        int& out_back_page_no, uint64& out_back_first_key)
+                                        int& out_back_page_no, uint64& out_back_first_key)
     {
         //获取新页
         dbPage_ref new_page_ref;
@@ -149,12 +158,12 @@ namespace iedb
         auto page = btree_leaf_page::open(page_ref->get().get_data());
         CHECK_ERROR(allocate_page(new_page_ref));
         auto new_page_buff = new_page_ref->get().get_data();
-        auto new_page = btree_leaf_page::init(new_page_buff,page_ref->get().get_page_no(),page->next_page);
+        auto new_page = btree_leaf_page::init(new_page_buff, page_ref->get().get_page_no(), page->next_page);
         page->next_page = new_page_ref->get().get_page_no();
         page_ref->get().enable_write();
         //对新页进行平衡
         uint64 middle_key = 0;
-        btree_leaf_page::balance(page,new_page,middle_key);
+        btree_leaf_page::balance(page, new_page, middle_key);
         //插入数据
         auto target_page = page;
         if (key > middle_key)
@@ -184,7 +193,7 @@ namespace iedb
         auto new_page_buff = new_page_ref->get().get_data();
         //对页面进行分裂
         uint64 middle_key = 0;
-        btree_internal_page::split(ori_page,new_page_buff,ori_page_no,new_page_no,middle_key);
+        btree_internal_page::split(ori_page, new_page_buff, ori_page_no, new_page_no, middle_key);
         //插入数据
         auto new_page = btree_internal_page::open(new_page_buff);
         if (key > middle_key)
@@ -209,7 +218,7 @@ namespace iedb
         //如果返回status_ok，则说明插入值非当前最小值，按正常逻辑处理
         //向栈顶页面插入数据
         memory_slice current_slice = data;
-        uint64  front_key,back_key;
+        uint64 front_key, back_key;
         int back_no;
         assert(stack.empty() == false);
         //首先考虑仅需插入叶节点的情况
@@ -237,7 +246,8 @@ namespace iedb
             if (_status == status_ok)
                 return status_ok;
             //当前插入内部页空间不足，需要分裂并将结果插入上一层页
-            CHECK_ERROR(insert_to_full_internal_page(page_ref,back_key, front_no, back_no, back_key, front_no, back_no));
+            CHECK_ERROR(
+                insert_to_full_internal_page(page_ref,back_key, front_no, back_no, back_key, front_no, back_no));
         }
         //连最顶层页面都进行分裂，则需申请新页并修改root页面
         dbPage_ref new_page_ref;
@@ -248,68 +258,173 @@ namespace iedb
         return status_ok;
     }
 
+    int btree::obtain_nearby_page(const dbPage_ref& upper_page_ref, int current_page_no, dbPage_ref& out_front_Page_ref, dbPage_ref& out_back_page_ref) const
+    {
+        auto _status = 0;
+        auto page = open_internal_page(upper_page_ref);
+        auto key_count = page->key_count;
+        auto front_page_no = 0;
+        auto back_page_no = 0;
+        auto found = false;
+        //确定current_page_no在内部页中的位置
+        for (auto i = 0;i < key_count;i++)
+        {
+            if (page->pages_no[i] == current_page_no)
+            {
+                front_page_no = current_page_no;
+                back_page_no = page->pages_no[i + 1];
+                found = true;
+                break;
+            }
+        }
+        if (found == false)
+        {
+            if (page->pages_no[key_count] != current_page_no)
+                throw std::runtime_error("upper_page中应当存在current_page_no,但并未查找到");
+            //为避免跨页，必须向前查找
+            front_page_no = page->pages_no[key_count - 1];
+            back_page_no = current_page_no;
+        }
+        CHECK_ERROR(_pager->get_page(front_page_no,out_front_Page_ref));
+        CHECK_ERROR(_pager->get_page(back_page_no,out_back_page_ref));
+        return status_ok;
+    }
 
-    // int btree::merge_page(dbPage_ref& merge_page_ref, dbPage_ref& merged_page_ref, uint64& out_merged_page_first_key)
-    // {
-    //     auto front_page = open_page(merge_page_ref);
-    //     auto back_page = open_page(merged_page_ref);
-    //     assert(front_page->payloads[0].key < back_page->payloads[0].key);
-    //     assert(front_page->next_page == merged_page_ref->get().get_page_no());
-    //     auto _status = 0;
-    //     //首先判断是否能够进行合并
-    //     auto payload_size_count = front_page->payload_size_count + back_page->payload_size_count;
-    //     auto payload_count = front_page->payload_count + back_page->payload_count;
-    //     auto merged_data_size_count = sizeof(btree_leaf_page) + payload_count * sizeof(btree_leaf_page::payload_meta) +
-    //         payload_size_count;
-    //     if (merged_data_size_count >= page_size)
-    //         return status_no_space;
-    //     //开始准备合并
-    //     CHECK_ERROR(merge_page_ref->get().enable_write());
-    //     CHECK_ERROR(merged_page_ref->get().enable_write());
-    //     out_merged_page_first_key = back_page->payloads[0].key;
-    //     assert(btree_leaf_page::merge(front_page,back_page) == status_ok);
-    //     return status_ok;
-    // }
-    //
-    //
-    //
-    // int btree::delete_item(uint64 key)
-    // {
-    //     assert(_status == status::write);
-    //     std::stack<int> stack;
-    //     dbPage_ref page_ref;
-    //     uint64 current_key;
-    //     memory_slice slice{};
-    //     auto _status = 0;
-    //     auto page_no = 0;
-    //     auto merged_page_no = 0;
-    //     //由于存在最顶层仅单个节点，删除后原二层变为顶层的情况，故需记录上一级节点页号
-    //     auto last_merged_page = 0;
-    //     CHECK_ERROR(search_page(key,stack));
-    //     while (stack.empty() == false)
-    //     {
-    //         page_no = stack.top();
-    //         uint64 deleted_page_first_key;
-    //         stack.pop();
-    //         CHECK_ERROR(delete_in_leaf_page(page_no,key,merged_page_no,deleted_page_first_key));
-    //         //如果出现合并，则需要进一步对上一层的节点进行删除
-    //         //否则直接返回
-    //         if (merged_page_no == 0)
-    //             return status_ok;
-    //         key = deleted_page_first_key;
-    //         last_merged_page = merged_page_no;
-    //     }
-    //     //检查根页是否还存在节点
-    //     CHECK_ERROR(_pager->get_page(header.root_page_no,page_ref));
-    //     auto page = btree_leaf_page::open(page_ref->get().get_data());
-    //     //如果不存在节点则需释放根页，并将根页号切换为上一级的合并页页号
-    //     if (page->payload_size_count == 0)
-    //     {
-    //         CHECK_ERROR(release_page(page_ref));
-    //         header.root_page_no = last_merged_page;
-    //     }
-    //     return status_ok;
-    // }
+    int btree::adjust_nearby_leaf_page(const dbPage_ref& front_page_ref, const dbPage_ref& back_page_ref, bool& out_is_merge, uint64& out_key, int& out_next_page_no_for_front)
+    {
+        auto _status = 0;
+        CHECK_ERROR(front_page_ref->get().enable_write());
+        CHECK_ERROR(back_page_ref->get().enable_write());
+        auto front_page = open_leaf_page(front_page_ref);
+        auto back_page = open_leaf_page(back_page_ref);
+        auto front_size = front_page->payload_size_count;
+        auto back_size = back_page->payload_size_count;
+        auto front_count = front_page->payload_count;
+        auto back_count = back_page->payload_count;
+        //两者总payload大小小于一定值才可进行合并，否则仅能进行平衡
+        if (front_size + back_size < page_size / 4 * 3)
+        {
+            out_is_merge = true;
+            // 前后两页进行合并
+            assert(btree_leaf_page::merge(front_page, back_page) == status_ok);
+            assert(front_size + back_size == front_page->payload_size_count);
+            assert(front_count + back_count == front_page->payload_count);
+            out_key = front_page->payloads[front_page->payload_count - 1].key;
+        }
+        else
+        {
+            out_is_merge = false;
+            //需要对前后两页进行平衡
+            btree_leaf_page::balance(front_page, back_page, out_key);
+        }
+        out_next_page_no_for_front = front_page->next_page;
+        return status_ok;
+    }
+
+    int btree::adjust_nearby_internal_page(const dbPage_ref& upper_page_ref, const dbPage_ref& front_page_ref, const dbPage_ref& back_page_ref,bool & out_is_merge)
+    {
+        auto _status = 0;
+        auto key = 0UL;
+        auto front_page_no = front_page_ref->get().get_page_no();
+        auto back_page_no = back_page_ref->get().get_page_no();
+        auto upper_page = open_internal_page(upper_page_ref);
+        auto front_page = open_internal_page(front_page_ref);
+        auto back_page = open_internal_page(back_page_ref);
+        assert(front_page->next_page == back_page_no);
+        assert(back_page->prev_page == front_page_no);
+        assert(upper_page->search(front_page_no,back_page_no,key) == status_ok);
+        //确保三者能够被写入
+        CHECK_ERROR(upper_page_ref->get().enable_write());
+        CHECK_ERROR(front_page_ref->get().enable_write());
+        CHECK_ERROR(back_page_ref->get().enable_write());
+        //判断进行合并还是平衡
+        if (front_page->key_count + back_page->key_count + 1 < btree_internal_page::key_capacity)
+        {
+            //优先进行合并
+            out_is_merge = true;
+            assert(btree_internal_page::merge(front_page,back_page,key) == status_ok);
+            upper_page->remove(back_page_no) ;
+            return status_ok;
+        }
+        //否则进行平衡
+        out_is_merge = false;
+        auto middle_key = key;
+        btree_internal_page::balance( front_page, back_page, middle_key,key);
+        assert(upper_page->update(key,front_page_no,back_page_no) == status_ok);
+        return status_ok;
+    }
+
+
+    int btree::adjust_tree(uint64 key)
+    {
+        assert(_status == status::write);
+        std::stack<int> stack;
+        dbPage_ref upper_page_ref,front_page_ref,back_page_ref;
+        auto _status = 0;
+        CHECK_ERROR(search_page(key, stack));
+        assert(stack.empty() == false);
+        //首先确定是否需要调整
+        auto current_page_no = stack.top();
+        stack.pop();
+        //如果当前页面为根页则无需任何操作
+        if (current_page_no == header.root_page_no)
+            return status_ok;
+        assert(stack.empty() == false);
+        //获取上一级页面
+        auto upper_page_no = stack.top();
+        stack.pop();
+        CHECK_ERROR(_pager->get_page(upper_page_no,upper_page_ref));
+        auto merge_flag = false;
+        CHECK_ERROR(obtain_nearby_page(upper_page_ref,current_page_no,front_page_ref,back_page_ref));
+        auto front_page_no = front_page_ref->get().get_page_no();
+        auto back_page_no = back_page_ref->get().get_page_no();
+        auto next_page_no_for_front = 0;
+        CHECK_ERROR(adjust_nearby_leaf_page(front_page_ref,back_page_ref,merge_flag,key,next_page_no_for_front));
+        //如果仅进行平衡，则在修改上一层页面对应项目后返回
+        if (merge_flag == false)
+        {
+            auto internal_page = open_internal_page(upper_page_ref);
+            CHECK_ERROR(upper_page_ref->get().enable_write());
+            assert(internal_page->update(key, front_page_no, back_page_no) == status_ok);
+            return status_ok;
+        }
+        //否则需要先释放back_page后删除对应项目
+        CHECK_ERROR(release_page(back_page_ref));
+        auto upper_page = open_internal_page(upper_page_ref);
+        //然后修改合并页面对应项目
+        upper_page->remove(back_page_no);
+        // upper_page->update(key + 1, front_page_no, next_page_no_for_front);
+        while (stack.empty() == false)
+        {
+            // 首先判断upper_page是否需要进行进一步操作
+            if (upper_page->key_count >= btree_internal_page::key_capacity / 4)
+                return status_ok;
+            //开始进一步操作
+            //首先获取各个页面
+            current_page_no = upper_page_no;
+            upper_page_no = stack.top();
+            stack.pop();
+            CHECK_ERROR(_pager->get_page(upper_page_no, upper_page_ref));
+            upper_page_no = upper_page_ref->get().get_page_no();
+            CHECK_ERROR(obtain_nearby_page(upper_page_ref,current_page_no,front_page_ref,back_page_ref));
+            //开始处理
+            CHECK_ERROR(adjust_nearby_internal_page(upper_page_ref,front_page_ref,back_page_ref,merge_flag));
+            //如果未进行合并则可直接返回
+            if (merge_flag == false)
+                return status_ok;
+            // 否则需要先释放back_page
+            CHECK_ERROR(release_page(back_page_ref));
+        }
+        //如果upper_page到达根页仍未返回
+        //考虑根页内不存在key，需更换根页
+        if (upper_page->key_count == 0)
+        {
+            header.root_page_no = upper_page->pages_no[0];
+            CHECK_ERROR(release_page(upper_page_ref));
+        }
+        //其他情况下可直接返回
+        return status_ok;
+    }
 
     int btree::get_cursor(uint64 key, std::unique_ptr<cursor>& out_cursor)
     {
@@ -345,7 +460,7 @@ namespace iedb
         auto page = btree_leaf_page::open(page_ref->get().get_data());
         auto _cursor = page->get_cursor();
         CHECK_ERROR(_cursor.first());
-        out_cursor = std::make_unique<cursor>(*this, page_ref,_cursor);
+        out_cursor = std::make_unique<cursor>(*this, page_ref, _cursor);
         return status_ok;
     }
 
