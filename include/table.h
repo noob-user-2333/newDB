@@ -7,6 +7,7 @@
 
 #include <unordered_map>
 
+#include "token.h"
 #include "utility.h"
 /*
  *  Table 核心功能为读取对应文件生成
@@ -24,7 +25,7 @@ namespace iedb
         Float,
         text
     };
-    using column_data_type = std::variant<int64, double, std::string>;
+    using column_value = std::variant<uint64, double, std::string>;
     struct col_def
     {
         static constexpr int name_len = 32;
@@ -39,40 +40,6 @@ namespace iedb
 
         col_def() = default;
         col_def(const char* name, column_type type, uint32 element_count, int32 line_offset);
-    };
-
-    class row
-    {
-    private:
-        const int64 size;
-        std::unique_ptr<column_data_type[]> values;
-
-    public:
-        row() = delete;
-        row(row&) = delete;
-
-        explicit row(const int64 size): size(size),
-                                        values(new column_data_type[size], std::default_delete<column_data_type[]>())
-        {
-        }
-
-        column_data_type& operator[](int index);
-        column_data_type& operator[](int64 index);
-
-        [[nodiscard]] int64 get_column_count() const{return size;}
-        [[nodiscard]] static column_type get_column_type(const column_data_type & data);
-
-        static int column_data_add(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_minus(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_mul(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_div(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_mod(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_more(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_more_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_less(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_less_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
-        static int column_data_not_equal(const column_data_type& data1, const column_data_type& data2,column_data_type& out_result);
     };
 
     /*
@@ -93,6 +60,7 @@ namespace iedb
         std::vector<col_def> cols;
         int fixed_len_data_size;
 
+
         explicit table(std::string name);
         table(std::string& name, std::vector<col_def>& cols);
         static int get_data_type_size(column_type type);
@@ -101,8 +69,8 @@ namespace iedb
         table() = delete;
         static std::unique_ptr<table> get(const void* buffer, uint64 size);
         static std::unique_ptr<table> create_new(std::string name);
-        static int64 get_translate_need_buffer_size(table& translate_table);
-        static int64 translate_to_buffer(table& translate_table, void* buffer);
+        static int64 translate_to_buffer(const table& translate_table,std::vector<uint8> &buffer);
+        static column_type translate_token_to_column_type(token_type type);
         int get_table_size() const;
         const std::string& get_name() const;
         int get_fixed_len_data_size() const;
@@ -111,8 +79,8 @@ namespace iedb
         int get_col_count() const;
         int add_column(const std::string& name, column_type type, uint32 element_count);
 
-        std::unique_ptr<row> load_row_data_from_record(const void* record, int size) const;
-        int load_row_data_from_record(row& row_data,const void* record,int size) const;
+        void load_row_from_record(const std::vector<uint8> & record,std::vector<column_value>&row) const;
+        int store_row_to_record(const std::vector<column_value>& row_data,std::vector<uint8> & out_record) const;
     };
 }
 #endif //TABLE_H

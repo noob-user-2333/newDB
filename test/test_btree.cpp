@@ -24,15 +24,15 @@ namespace iedb
     static sqlite3_stmt* stmt;
     static bool init_success = false;
     static constexpr char random_path[] = "/dev/shm/btree-random";
-    static constexpr int max_page_count = 1024 * 64;
+    static constexpr int max_page_count = 1024 * 512;
     static uint8 buffer[max_page_count * sizeof(uint64) * 2];
     static std::vector<uint64> key_vector;
     static int insert_count;
     TEST(btree, init)
     {
-        // test::get_random(buffer, sizeof(buffer));
-        // test::save_data_to_file(buffer,sizeof(buffer),random_path);
-        test::read_file(random_path,0,sizeof(buffer),buffer);
+        test::get_random(buffer, sizeof(buffer));
+        test::save_data_to_file(buffer,sizeof(buffer),random_path);
+        // test::read_file(random_path,0,sizeof(buffer),buffer);
         // 检查是否存在对应文件夹，如不存在则创建
         std::filesystem::path _path(path);
         std::filesystem::path directory = _path.parent_path();

@@ -66,8 +66,9 @@ namespace iedb {
     static constexpr int status_error_file_type = 22;
 
     static constexpr int page_size = 64 * 1024 ;
-
     static_assert(((page_size - 1) & page_size) == 0 && page_size >= 4096,"页面大小必须是2的幂且不小于4096");
+    static constexpr int max_record_size = page_size / 4;
+
     static constexpr uint64 current_format_version = 0x0001000;
 
 

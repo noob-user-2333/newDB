@@ -71,11 +71,11 @@ namespace iedb {
         const uint32 offset;
         const uint32 len;
         const char* sql;
-        token * brother; //指向下一个表达式
-        token * child;  //指向下一个单词
-        // token * left;
-        // token * right;
-        token(token_type type,uint32 offset,uint32 len,const char* sql):type(type),offset(offset),len(len),sql(sql),brother(nullptr),child(nullptr){}
+        token* next;
+        token* left;
+        token* right;
+        token(token_type type,uint32 offset,uint32 len,const char* sql):type(type),offset(offset),len(len),sql(sql),
+        left(nullptr),right(nullptr),next(nullptr){}
         void print()const;
         [[nodiscard]] std::string to_string() const {
             return {sql, offset, len};

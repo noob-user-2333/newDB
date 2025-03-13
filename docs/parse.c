@@ -28,7 +28,7 @@
 /************ Begin %include sections from the grammar ************************/
 #line 19 "parse.y"
 
-    #include "parser.h"
+    #include "AST.h"
 
     using namespace iedb;
 #line 35 "parse.c"
@@ -149,7 +149,7 @@
 #endif
 /************* Begin control #defines *****************************************/
 #define YYCODETYPE unsigned char
-#define YYNOCODE 65
+#define YYNOCODE 71
 #define YYACTIONTYPE unsigned char
 #define ParseTOKENTYPE  token* 
 typedef union {
@@ -159,11 +159,11 @@ typedef union {
 #ifndef YYSTACKDEPTH
 #define YYSTACKDEPTH 100
 #endif
-#define ParseARG_SDECL parse_result *result;
-#define ParseARG_PDECL ,parse_result *result
-#define ParseARG_PARAM ,result
-#define ParseARG_FETCH parse_result *result=yypParser->result;
-#define ParseARG_STORE yypParser->result=result;
+#define ParseARG_SDECL AST*ast ;
+#define ParseARG_PDECL ,AST*ast 
+#define ParseARG_PARAM ,ast 
+#define ParseARG_FETCH AST*ast =yypParser->ast ;
+#define ParseARG_STORE yypParser->ast =ast ;
 #define YYREALLOC realloc
 #define YYFREE free
 #define YYDYNSTACK 0
@@ -172,18 +172,18 @@ typedef union {
 #define ParseCTX_PARAM
 #define ParseCTX_FETCH
 #define ParseCTX_STORE
-#define YYNSTATE             52
-#define YYNRULE              51
-#define YYNRULE_WITH_ACTION  51
+#define YYNSTATE             63
+#define YYNRULE              54
+#define YYNRULE_WITH_ACTION  54
 #define YYNTOKEN             50
-#define YY_MAX_SHIFT         51
-#define YY_MIN_SHIFTREDUCE   90
-#define YY_MAX_SHIFTREDUCE   140
-#define YY_ERROR_ACTION      141
-#define YY_ACCEPT_ACTION     142
-#define YY_NO_ACTION         143
-#define YY_MIN_REDUCE        144
-#define YY_MAX_REDUCE        194
+#define YY_MAX_SHIFT         62
+#define YY_MIN_SHIFTREDUCE   95
+#define YY_MAX_SHIFTREDUCE   148
+#define YY_ERROR_ACTION      149
+#define YY_ACCEPT_ACTION     150
+#define YY_NO_ACTION         151
+#define YY_MIN_REDUCE        152
+#define YY_MAX_REDUCE        205
 #define YY_MIN_DSTRCTR       0
 #define YY_MAX_DSTRCTR       0
 /************* End control #defines *******************************************/
@@ -268,72 +268,76 @@ typedef union {
 **  yy_default[]       Default action for each state.
 **
 *********** Begin parsing tables **********************************************/
-#define YY_ACTTAB_COUNT (147)
+#define YY_ACTTAB_COUNT (154)
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */    51,  175,  142,   10,   42,  154,  175,   15,   12,  153,
- /*    10 */   175,  122,   12,  175,  174,   11,  105,  106,  107,  108,
- /*    20 */   116,  117,  115,  112,  113,   13,  114,  109,  110,  111,
- /*    30 */   123,  118,  119,   22,  181,  105,  106,  107,  108,  116,
- /*    40 */   117,  115,  112,  113,  180,  114,  109,  110,  111,  189,
- /*    50 */   118,  119,  105,  106,  107,  108,  116,  117,  115,  112,
- /*    60 */   113,    2,  114,  109,  110,  111,   28,  118,  119,  102,
- /*    70 */   103,  104,  101,  187,    1,   35,    6,   41,   30,   26,
- /*    80 */   102,  103,  104,  101,   97,   21,  188,    6,  102,  103,
- /*    90 */   104,  101,   43,  154,  175,    7,   12,   44,  154,  175,
- /*   100 */    47,   12,   46,  154,  175,   49,   12,  128,  130,  129,
- /*   110 */   131,   45,   18,  136,  137,  138,   17,   14,  194,   19,
- /*   120 */    32,   37,   23,   24,   25,  193,   16,   27,   29,  186,
- /*   130 */    31,    9,   33,  179,   34,   36,   38,   39,    8,   40,
- /*   140 */     3,    5,    4,  144,   48,   20,   50,
+ /*     0 */    62,  188,   28,  192,   49,   53,  188,   21,   18,  187,
+ /*    10 */    54,   14,   20,   18,  187,   50,   53,  188,  112,  113,
+ /*    20 */   150,   54,   14,   20,   18,  187,   51,   53,  188,  114,
+ /*    30 */    27,  199,   54,   14,   20,   18,  187,   57,   53,  188,
+ /*    40 */   110,  111,  188,   54,   14,   20,   18,  187,   29,  188,
+ /*    50 */   186,  188,   17,   54,   14,   20,   18,  187,   19,  187,
+ /*    60 */   191,   56,  188,  132,    9,  200,   54,   14,   20,   18,
+ /*    70 */   187,  107,  108,  109,  106,  188,   11,   10,    5,   55,
+ /*    80 */    14,   20,   18,  187,    7,    2,  102,  119,  120,  118,
+ /*    90 */   115,  116,   35,  117,  198,    1,   42,   23,   48,   37,
+ /*   100 */    33,   39,  107,  108,  109,  106,  188,   58,   60,    5,
+ /*   110 */    52,   15,   20,   18,  187,  136,  138,  137,  139,  144,
+ /*   120 */   145,  146,   16,   24,   25,  205,   44,   30,   31,   32,
+ /*   130 */   204,   34,   22,   36,  197,   38,   41,   40,   13,  190,
+ /*   140 */    43,   46,   45,   12,   47,    6,    3,    4,    7,    8,
+ /*   150 */   152,   59,   26,   61,
 };
 static const YYCODETYPE yy_lookahead[] = {
- /*     0 */    51,   57,   50,   59,   55,   56,   57,    6,   59,   56,
- /*    10 */    57,   11,   59,   57,   57,   59,   16,   17,   18,   19,
- /*    20 */    20,   21,   22,   23,   24,   58,   26,   27,   28,   29,
- /*    30 */    11,   31,   32,   60,   61,   16,   17,   18,   19,   20,
- /*    40 */    21,   22,   23,   24,   61,   26,   27,   28,   29,   64,
- /*    50 */    31,   32,   16,   17,   18,   19,   20,   21,   22,   23,
- /*    60 */    24,   40,   26,   27,   28,   29,   52,   31,   32,    3,
- /*    70 */     4,    5,    6,   63,   33,   34,   10,   36,   37,   38,
- /*    80 */     3,    4,    5,    6,   18,   62,   63,   10,    3,    4,
- /*    90 */     5,    6,   55,   56,   57,   10,   59,   55,   56,   57,
- /*   100 */    42,   59,   55,   56,   57,   54,   59,    2,    3,    4,
- /*   110 */     5,   41,   53,   45,   46,   47,    7,    7,    0,   52,
- /*   120 */    11,   11,    8,    6,   44,    0,    6,    8,   39,    0,
- /*   130 */     8,   10,    6,    0,   44,    8,   49,    6,   10,   48,
- /*   140 */    43,    7,   43,    0,    8,    6,   39,   65,   65,   65,
- /*   150 */    65,   65,   65,   65,   65,   65,   65,   65,   65,   65,
- /*   160 */    65,   65,   65,   65,   65,   65,   65,   65,   65,   65,
- /*   170 */    65,   65,   65,   65,   65,   65,   65,   65,   65,   65,
- /*   180 */    65,   65,   65,   65,   65,   65,   65,   65,   65,   65,
- /*   190 */    65,   65,   65,   65,   65,   65,   65,
+ /*     0 */    51,   57,   66,   67,   55,   56,   57,   63,   64,   65,
+ /*    10 */    61,   62,   63,   64,   65,   55,   56,   57,   18,   19,
+ /*    20 */    50,   61,   62,   63,   64,   65,   55,   56,   57,   29,
+ /*    30 */    68,   69,   61,   62,   63,   64,   65,   55,   56,   57,
+ /*    40 */    16,   17,   57,   61,   62,   63,   64,   65,   56,   57,
+ /*    50 */    65,   57,    6,   61,   62,   63,   64,   65,   64,   65,
+ /*    60 */    67,   56,   57,   11,   60,   70,   61,   62,   63,   64,
+ /*    70 */    65,    3,    4,    5,    6,   57,   59,   58,   10,   61,
+ /*    80 */    62,   63,   64,   65,   32,   40,   18,   20,   21,   22,
+ /*    90 */    23,   24,   52,   26,   69,   33,   34,    7,   36,   37,
+ /*   100 */    38,   11,    3,    4,    5,    6,   57,   42,   54,   10,
+ /*   110 */    41,   62,   63,   64,   65,    2,    3,    4,    5,   45,
+ /*   120 */    46,   47,    7,   53,   52,    0,   11,    8,    6,   44,
+ /*   130 */     0,    8,    6,   39,    0,    8,   44,    6,   10,    0,
+ /*   140 */     8,    6,   49,   10,   48,    7,   43,   43,   32,   31,
+ /*   150 */     0,    8,    6,   39,   71,   71,   71,   71,   71,   71,
+ /*   160 */    71,   71,   71,   71,   71,   71,   71,   71,   71,   71,
+ /*   170 */    71,   71,   71,   71,   71,   71,   71,   71,   71,   71,
+ /*   180 */    71,   71,   71,   71,   71,   71,   71,   71,   71,   71,
+ /*   190 */    71,   71,   71,   71,   71,   71,   71,   71,   71,   71,
+ /*   200 */    71,   71,   71,   71,
 };
-#define YY_SHIFT_COUNT    (51)
+#define YY_SHIFT_COUNT    (62)
 #define YY_SHIFT_MIN      (0)
-#define YY_SHIFT_MAX      (143)
+#define YY_SHIFT_MAX      (150)
 static const unsigned char yy_shift_ofst[] = {
- /*     0 */    41,   66,   77,   77,   77,   77,   77,   77,  105,    1,
- /*    10 */     0,   19,   36,   85,  105,   68,   21,    1,   58,   70,
- /*    20 */    21,  109,  110,  118,  114,  117,   80,  125,  119,  120,
- /*    30 */    89,  129,  122,  121,  126,   90,  133,  127,  128,   87,
- /*    40 */   131,   91,  134,  134,  134,   97,  134,   99,  143,  136,
- /*    50 */   139,  107,
+ /*     0 */    62,   68,   99,   99,   99,   99,   99,   99,   99,   99,
+ /*    10 */    99,   99,  113,   46,   67,   67,  113,   74,    0,    0,
+ /*    20 */    24,   24,   45,   46,   65,   69,   45,   90,  115,   52,
+ /*    30 */   125,  119,  122,   85,  130,  123,  126,   94,  134,  127,
+ /*    40 */   128,  131,   92,  139,  132,  133,   93,  135,   96,  138,
+ /*    50 */   138,  138,  103,  116,  118,  118,  116,  138,  104,  150,
+ /*    60 */   143,  146,  114,
 };
-#define YY_REDUCE_COUNT (20)
-#define YY_REDUCE_MIN   (-56)
-#define YY_REDUCE_MAX   (67)
+#define YY_REDUCE_COUNT (26)
+#define YY_REDUCE_MIN   (-64)
+#define YY_REDUCE_MAX   (72)
 static const signed char yy_reduce_ofst[] = {
- /*     0 */   -48,  -51,   37,   42,   47,  -47,  -56,  -44,  -27,   23,
- /*    10 */   -33,  -33,  -33,  -43,  -17,  -15,   14,   10,   51,   59,
- /*    20 */    67,
+ /*     0 */   -30,  -51,  -40,  -29,  -18,   -8,    5,   18,   49,  -56,
+ /*    10 */    -6,  -15,  -64,  -38,    4,    4,   -7,   -5,   17,   17,
+ /*    20 */    19,   19,   40,   25,   54,   70,   72,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   141,  141,  141,  141,  141,  141,  141,  141,  141,  141,
- /*    10 */   141,  141,  178,  141,  141,  141,  145,  141,  149,  147,
- /*    20 */   145,  141,  141,  141,  141,  141,  141,  141,  141,  141,
- /*    30 */   141,  141,  141,  141,  141,  141,  141,  141,  141,  141,
- /*    40 */   141,  141,  152,  146,  148,  141,  150,  141,  141,  141,
- /*    50 */   141,  141,
+ /*     0 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  149,
+ /*    10 */   149,  149,  149,  149,  181,  180,  149,  149,  185,  184,
+ /*    20 */   183,  182,  153,  149,  157,  155,  153,  149,  149,  149,
+ /*    30 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  149,
+ /*    40 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  160,
+ /*    50 */   154,  156,  149,  162,  179,  178,  161,  158,  149,  149,
+ /*    60 */   149,  149,  149,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -492,15 +496,21 @@ static const char *const yyTokenName[] = {
   /*   53 */ "order_statement",
   /*   54 */ "group_statement",
   /*   55 */ "exprs",
-  /*   56 */ "expr",
+  /*   56 */ "or_expr",
   /*   57 */ "item",
-  /*   58 */ "op",
-  /*   59 */ "factor",
-  /*   60 */ "data_values",
-  /*   61 */ "value",
-  /*   62 */ "colsdef",
-  /*   63 */ "coldef",
-  /*   64 */ "type",
+  /*   58 */ "op1",
+  /*   59 */ "op2",
+  /*   60 */ "op3",
+  /*   61 */ "and_expr",
+  /*   62 */ "compare_expr",
+  /*   63 */ "compute_expr1",
+  /*   64 */ "compute_expr2",
+  /*   65 */ "factor",
+  /*   66 */ "data_values",
+  /*   67 */ "value",
+  /*   68 */ "colsdef",
+  /*   69 */ "coldef",
+  /*   70 */ "type",
 };
 #endif /* defined(YYCOVERAGE) || !defined(NDEBUG) */
 
@@ -517,48 +527,51 @@ static const char *const yyRuleName[] = {
  /*   6 */ "group_statement ::= GROUP BY exprs",
  /*   7 */ "colnames ::= STAR",
  /*   8 */ "colnames ::= exprs",
- /*   9 */ "exprs ::= exprs COMMA expr",
- /*  10 */ "exprs ::= expr",
+ /*   9 */ "exprs ::= exprs COMMA or_expr",
+ /*  10 */ "exprs ::= or_expr",
  /*  11 */ "item ::= NAME",
  /*  12 */ "item ::= HEX",
  /*  13 */ "item ::= NUMBER_INT",
  /*  14 */ "item ::= NUMBER_FLOAT",
- /*  15 */ "op ::= PLUS",
- /*  16 */ "op ::= MINUS",
- /*  17 */ "op ::= STAR",
- /*  18 */ "op ::= SLASH",
- /*  19 */ "op ::= BIT_OR",
- /*  20 */ "op ::= BIT_AND",
- /*  21 */ "op ::= PERCENT",
- /*  22 */ "op ::= MORE",
- /*  23 */ "op ::= LESS",
- /*  24 */ "op ::= EQUAL",
- /*  25 */ "op ::= NOT_EQUAL",
- /*  26 */ "op ::= MORE_EQUAL",
- /*  27 */ "op ::= LESS_EQUAL",
- /*  28 */ "op ::= AND",
- /*  29 */ "op ::= OR",
- /*  30 */ "factor ::= factor op item",
- /*  31 */ "factor ::= item",
- /*  32 */ "factor ::= PARENTHESIS_LEFT factor PARENTHESIS_RIGHT",
- /*  33 */ "factor ::= factor op PARENTHESIS_LEFT factor PARENTHESIS_RIGHT",
- /*  34 */ "expr ::= factor",
- /*  35 */ "cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI",
- /*  36 */ "data_values ::= data_values COMMA value",
- /*  37 */ "data_values ::= value",
- /*  38 */ "value ::= STRING",
- /*  39 */ "value ::= NUMBER_INT",
- /*  40 */ "value ::= HEX",
- /*  41 */ "value ::= NUMBER_FLOAT",
- /*  42 */ "cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI",
- /*  43 */ "colsdef ::= colsdef COMMA coldef",
- /*  44 */ "colsdef ::= coldef",
- /*  45 */ "coldef ::= NAME type",
- /*  46 */ "type ::= INT",
- /*  47 */ "type ::= FLOAT",
- /*  48 */ "type ::= TEXT",
- /*  49 */ "cmd ::= DELETE FROM NAME where_statement SEMI",
- /*  50 */ "cmd ::= DROP TABLE NAME SEMI",
+ /*  15 */ "op1 ::= PLUS",
+ /*  16 */ "op1 ::= MINUS",
+ /*  17 */ "op2 ::= STAR",
+ /*  18 */ "op2 ::= SLASH",
+ /*  19 */ "op2 ::= PERCENT",
+ /*  20 */ "op3 ::= MORE",
+ /*  21 */ "op3 ::= LESS",
+ /*  22 */ "op3 ::= EQUAL",
+ /*  23 */ "op3 ::= NOT_EQUAL",
+ /*  24 */ "op3 ::= MORE_EQUAL",
+ /*  25 */ "op3 ::= LESS_EQUAL",
+ /*  26 */ "or_expr ::= or_expr OR and_expr",
+ /*  27 */ "or_expr ::= and_expr",
+ /*  28 */ "and_expr ::= and_expr AND compare_expr",
+ /*  29 */ "and_expr ::= compare_expr",
+ /*  30 */ "compare_expr ::= compare_expr op3 compute_expr1",
+ /*  31 */ "compare_expr ::= compute_expr1",
+ /*  32 */ "compute_expr1 ::= compute_expr1 op1 compute_expr2",
+ /*  33 */ "compute_expr1 ::= compute_expr2",
+ /*  34 */ "compute_expr2 ::= compute_expr2 op2 factor",
+ /*  35 */ "compute_expr2 ::= factor",
+ /*  36 */ "factor ::= item",
+ /*  37 */ "factor ::= PARENTHESIS_LEFT or_expr PARENTHESIS_RIGHT",
+ /*  38 */ "cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI",
+ /*  39 */ "data_values ::= data_values COMMA value",
+ /*  40 */ "data_values ::= value",
+ /*  41 */ "value ::= STRING",
+ /*  42 */ "value ::= NUMBER_INT",
+ /*  43 */ "value ::= HEX",
+ /*  44 */ "value ::= NUMBER_FLOAT",
+ /*  45 */ "cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI",
+ /*  46 */ "colsdef ::= colsdef COMMA coldef",
+ /*  47 */ "colsdef ::= coldef",
+ /*  48 */ "coldef ::= NAME type",
+ /*  49 */ "type ::= INT",
+ /*  50 */ "type ::= FLOAT",
+ /*  51 */ "type ::= TEXT",
+ /*  52 */ "cmd ::= DELETE FROM NAME where_statement SEMI",
+ /*  53 */ "cmd ::= DROP TABLE NAME SEMI",
 };
 #endif /* NDEBUG */
 
@@ -988,48 +1001,51 @@ static const YYCODETYPE yyRuleInfoLhs[] = {
     54,  /* (6) group_statement ::= GROUP BY exprs */
     51,  /* (7) colnames ::= STAR */
     51,  /* (8) colnames ::= exprs */
-    55,  /* (9) exprs ::= exprs COMMA expr */
-    55,  /* (10) exprs ::= expr */
+    55,  /* (9) exprs ::= exprs COMMA or_expr */
+    55,  /* (10) exprs ::= or_expr */
     57,  /* (11) item ::= NAME */
     57,  /* (12) item ::= HEX */
     57,  /* (13) item ::= NUMBER_INT */
     57,  /* (14) item ::= NUMBER_FLOAT */
-    58,  /* (15) op ::= PLUS */
-    58,  /* (16) op ::= MINUS */
-    58,  /* (17) op ::= STAR */
-    58,  /* (18) op ::= SLASH */
-    58,  /* (19) op ::= BIT_OR */
-    58,  /* (20) op ::= BIT_AND */
-    58,  /* (21) op ::= PERCENT */
-    58,  /* (22) op ::= MORE */
-    58,  /* (23) op ::= LESS */
-    58,  /* (24) op ::= EQUAL */
-    58,  /* (25) op ::= NOT_EQUAL */
-    58,  /* (26) op ::= MORE_EQUAL */
-    58,  /* (27) op ::= LESS_EQUAL */
-    58,  /* (28) op ::= AND */
-    58,  /* (29) op ::= OR */
-    59,  /* (30) factor ::= factor op item */
-    59,  /* (31) factor ::= item */
-    59,  /* (32) factor ::= PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
-    59,  /* (33) factor ::= factor op PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
-    56,  /* (34) expr ::= factor */
-    50,  /* (35) cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
-    60,  /* (36) data_values ::= data_values COMMA value */
-    60,  /* (37) data_values ::= value */
-    61,  /* (38) value ::= STRING */
-    61,  /* (39) value ::= NUMBER_INT */
-    61,  /* (40) value ::= HEX */
-    61,  /* (41) value ::= NUMBER_FLOAT */
-    50,  /* (42) cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
-    62,  /* (43) colsdef ::= colsdef COMMA coldef */
-    62,  /* (44) colsdef ::= coldef */
-    63,  /* (45) coldef ::= NAME type */
-    64,  /* (46) type ::= INT */
-    64,  /* (47) type ::= FLOAT */
-    64,  /* (48) type ::= TEXT */
-    50,  /* (49) cmd ::= DELETE FROM NAME where_statement SEMI */
-    50,  /* (50) cmd ::= DROP TABLE NAME SEMI */
+    58,  /* (15) op1 ::= PLUS */
+    58,  /* (16) op1 ::= MINUS */
+    59,  /* (17) op2 ::= STAR */
+    59,  /* (18) op2 ::= SLASH */
+    59,  /* (19) op2 ::= PERCENT */
+    60,  /* (20) op3 ::= MORE */
+    60,  /* (21) op3 ::= LESS */
+    60,  /* (22) op3 ::= EQUAL */
+    60,  /* (23) op3 ::= NOT_EQUAL */
+    60,  /* (24) op3 ::= MORE_EQUAL */
+    60,  /* (25) op3 ::= LESS_EQUAL */
+    56,  /* (26) or_expr ::= or_expr OR and_expr */
+    56,  /* (27) or_expr ::= and_expr */
+    61,  /* (28) and_expr ::= and_expr AND compare_expr */
+    61,  /* (29) and_expr ::= compare_expr */
+    62,  /* (30) compare_expr ::= compare_expr op3 compute_expr1 */
+    62,  /* (31) compare_expr ::= compute_expr1 */
+    63,  /* (32) compute_expr1 ::= compute_expr1 op1 compute_expr2 */
+    63,  /* (33) compute_expr1 ::= compute_expr2 */
+    64,  /* (34) compute_expr2 ::= compute_expr2 op2 factor */
+    64,  /* (35) compute_expr2 ::= factor */
+    65,  /* (36) factor ::= item */
+    65,  /* (37) factor ::= PARENTHESIS_LEFT or_expr PARENTHESIS_RIGHT */
+    50,  /* (38) cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
+    66,  /* (39) data_values ::= data_values COMMA value */
+    66,  /* (40) data_values ::= value */
+    67,  /* (41) value ::= STRING */
+    67,  /* (42) value ::= NUMBER_INT */
+    67,  /* (43) value ::= HEX */
+    67,  /* (44) value ::= NUMBER_FLOAT */
+    50,  /* (45) cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
+    68,  /* (46) colsdef ::= colsdef COMMA coldef */
+    68,  /* (47) colsdef ::= coldef */
+    69,  /* (48) coldef ::= NAME type */
+    70,  /* (49) type ::= INT */
+    70,  /* (50) type ::= FLOAT */
+    70,  /* (51) type ::= TEXT */
+    50,  /* (52) cmd ::= DELETE FROM NAME where_statement SEMI */
+    50,  /* (53) cmd ::= DROP TABLE NAME SEMI */
 };
 
 /* For rule J, yyRuleInfoNRhs[J] contains the negative of the number
@@ -1044,48 +1060,51 @@ static const signed char yyRuleInfoNRhs[] = {
    -3,  /* (6) group_statement ::= GROUP BY exprs */
    -1,  /* (7) colnames ::= STAR */
    -1,  /* (8) colnames ::= exprs */
-   -3,  /* (9) exprs ::= exprs COMMA expr */
-   -1,  /* (10) exprs ::= expr */
+   -3,  /* (9) exprs ::= exprs COMMA or_expr */
+   -1,  /* (10) exprs ::= or_expr */
    -1,  /* (11) item ::= NAME */
    -1,  /* (12) item ::= HEX */
    -1,  /* (13) item ::= NUMBER_INT */
    -1,  /* (14) item ::= NUMBER_FLOAT */
-   -1,  /* (15) op ::= PLUS */
-   -1,  /* (16) op ::= MINUS */
-   -1,  /* (17) op ::= STAR */
-   -1,  /* (18) op ::= SLASH */
-   -1,  /* (19) op ::= BIT_OR */
-   -1,  /* (20) op ::= BIT_AND */
-   -1,  /* (21) op ::= PERCENT */
-   -1,  /* (22) op ::= MORE */
-   -1,  /* (23) op ::= LESS */
-   -1,  /* (24) op ::= EQUAL */
-   -1,  /* (25) op ::= NOT_EQUAL */
-   -1,  /* (26) op ::= MORE_EQUAL */
-   -1,  /* (27) op ::= LESS_EQUAL */
-   -1,  /* (28) op ::= AND */
-   -1,  /* (29) op ::= OR */
-   -3,  /* (30) factor ::= factor op item */
-   -1,  /* (31) factor ::= item */
-   -3,  /* (32) factor ::= PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
-   -5,  /* (33) factor ::= factor op PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
-   -1,  /* (34) expr ::= factor */
-   -8,  /* (35) cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
-   -3,  /* (36) data_values ::= data_values COMMA value */
-   -1,  /* (37) data_values ::= value */
-   -1,  /* (38) value ::= STRING */
-   -1,  /* (39) value ::= NUMBER_INT */
-   -1,  /* (40) value ::= HEX */
-   -1,  /* (41) value ::= NUMBER_FLOAT */
-   -7,  /* (42) cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
-   -3,  /* (43) colsdef ::= colsdef COMMA coldef */
-   -1,  /* (44) colsdef ::= coldef */
-   -2,  /* (45) coldef ::= NAME type */
-   -1,  /* (46) type ::= INT */
-   -1,  /* (47) type ::= FLOAT */
-   -1,  /* (48) type ::= TEXT */
-   -5,  /* (49) cmd ::= DELETE FROM NAME where_statement SEMI */
-   -4,  /* (50) cmd ::= DROP TABLE NAME SEMI */
+   -1,  /* (15) op1 ::= PLUS */
+   -1,  /* (16) op1 ::= MINUS */
+   -1,  /* (17) op2 ::= STAR */
+   -1,  /* (18) op2 ::= SLASH */
+   -1,  /* (19) op2 ::= PERCENT */
+   -1,  /* (20) op3 ::= MORE */
+   -1,  /* (21) op3 ::= LESS */
+   -1,  /* (22) op3 ::= EQUAL */
+   -1,  /* (23) op3 ::= NOT_EQUAL */
+   -1,  /* (24) op3 ::= MORE_EQUAL */
+   -1,  /* (25) op3 ::= LESS_EQUAL */
+   -3,  /* (26) or_expr ::= or_expr OR and_expr */
+   -1,  /* (27) or_expr ::= and_expr */
+   -3,  /* (28) and_expr ::= and_expr AND compare_expr */
+   -1,  /* (29) and_expr ::= compare_expr */
+   -3,  /* (30) compare_expr ::= compare_expr op3 compute_expr1 */
+   -1,  /* (31) compare_expr ::= compute_expr1 */
+   -3,  /* (32) compute_expr1 ::= compute_expr1 op1 compute_expr2 */
+   -1,  /* (33) compute_expr1 ::= compute_expr2 */
+   -3,  /* (34) compute_expr2 ::= compute_expr2 op2 factor */
+   -1,  /* (35) compute_expr2 ::= factor */
+   -1,  /* (36) factor ::= item */
+   -3,  /* (37) factor ::= PARENTHESIS_LEFT or_expr PARENTHESIS_RIGHT */
+   -8,  /* (38) cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
+   -3,  /* (39) data_values ::= data_values COMMA value */
+   -1,  /* (40) data_values ::= value */
+   -1,  /* (41) value ::= STRING */
+   -1,  /* (42) value ::= NUMBER_INT */
+   -1,  /* (43) value ::= HEX */
+   -1,  /* (44) value ::= NUMBER_FLOAT */
+   -7,  /* (45) cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
+   -3,  /* (46) colsdef ::= colsdef COMMA coldef */
+   -1,  /* (47) colsdef ::= coldef */
+   -2,  /* (48) coldef ::= NAME type */
+   -1,  /* (49) type ::= INT */
+   -1,  /* (50) type ::= FLOAT */
+   -1,  /* (51) type ::= TEXT */
+   -5,  /* (52) cmd ::= DELETE FROM NAME where_statement SEMI */
+   -4,  /* (53) cmd ::= DROP TABLE NAME SEMI */
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -1130,164 +1149,143 @@ static YYACTIONTYPE yy_reduce(
       case 0: /* cmd ::= SELECT colnames FROM NAME where_statement order_statement group_statement SEMI */
 #line 25 "parse.y"
 {
-    result->type = token_type::select;
-    result->master = yymsp[-6].minor.yy0;
-    result->target = yymsp[-4].minor.yy0;
-    result->filter = yymsp[-3].minor.yy0;
-    result->order = yymsp[-2].minor.yy0;
-    result->group = yymsp[-1].minor.yy0;
+    ast->type = token_type::select;
+    ast->target_table = yymsp[-4].minor.yy0;
+
+    ast->master = yymsp[-6].minor.yy0;
+    ast->where = yymsp[-3].minor.yy0;
+    ast->order = yymsp[-2].minor.yy0;
+    ast->group = yymsp[-1].minor.yy0;
     }
-#line 1140 "parse.c"
+#line 1160 "parse.c"
         break;
       case 1: /* where_statement ::= */
-#line 33 "parse.y"
+#line 34 "parse.y"
 {yymsp[1].minor.yy0=nullptr; }
-#line 1145 "parse.c"
+#line 1165 "parse.c"
         break;
       case 2: /* where_statement ::= WHERE exprs */
-#line 34 "parse.y"
+#line 35 "parse.y"
 {yymsp[-1].minor.yy0=yymsp[0].minor.yy0;}
-#line 1150 "parse.c"
+#line 1170 "parse.c"
         break;
       case 3: /* order_statement ::= */
       case 5: /* group_statement ::= */ yytestcase(yyruleno==5);
-#line 35 "parse.y"
+#line 36 "parse.y"
 {yymsp[1].minor.yy0=nullptr;}
-#line 1156 "parse.c"
+#line 1176 "parse.c"
         break;
       case 4: /* order_statement ::= ORDER BY exprs */
       case 6: /* group_statement ::= GROUP BY exprs */ yytestcase(yyruleno==6);
-#line 36 "parse.y"
+#line 37 "parse.y"
 {yymsp[-2].minor.yy0=yymsp[0].minor.yy0;}
-#line 1162 "parse.c"
+#line 1182 "parse.c"
         break;
       case 7: /* colnames ::= STAR */
       case 8: /* colnames ::= exprs */ yytestcase(yyruleno==8);
-      case 10: /* exprs ::= expr */ yytestcase(yyruleno==10);
+      case 10: /* exprs ::= or_expr */ yytestcase(yyruleno==10);
       case 11: /* item ::= NAME */ yytestcase(yyruleno==11);
       case 12: /* item ::= HEX */ yytestcase(yyruleno==12);
       case 13: /* item ::= NUMBER_INT */ yytestcase(yyruleno==13);
       case 14: /* item ::= NUMBER_FLOAT */ yytestcase(yyruleno==14);
-      case 15: /* op ::= PLUS */ yytestcase(yyruleno==15);
-      case 16: /* op ::= MINUS */ yytestcase(yyruleno==16);
-      case 17: /* op ::= STAR */ yytestcase(yyruleno==17);
-      case 18: /* op ::= SLASH */ yytestcase(yyruleno==18);
-      case 19: /* op ::= BIT_OR */ yytestcase(yyruleno==19);
-      case 20: /* op ::= BIT_AND */ yytestcase(yyruleno==20);
-      case 21: /* op ::= PERCENT */ yytestcase(yyruleno==21);
-      case 22: /* op ::= MORE */ yytestcase(yyruleno==22);
-      case 23: /* op ::= LESS */ yytestcase(yyruleno==23);
-      case 24: /* op ::= EQUAL */ yytestcase(yyruleno==24);
-      case 25: /* op ::= NOT_EQUAL */ yytestcase(yyruleno==25);
-      case 26: /* op ::= MORE_EQUAL */ yytestcase(yyruleno==26);
-      case 27: /* op ::= LESS_EQUAL */ yytestcase(yyruleno==27);
-      case 28: /* op ::= AND */ yytestcase(yyruleno==28);
-      case 29: /* op ::= OR */ yytestcase(yyruleno==29);
-      case 31: /* factor ::= item */ yytestcase(yyruleno==31);
-      case 34: /* expr ::= factor */ yytestcase(yyruleno==34);
-      case 37: /* data_values ::= value */ yytestcase(yyruleno==37);
-      case 38: /* value ::= STRING */ yytestcase(yyruleno==38);
-      case 39: /* value ::= NUMBER_INT */ yytestcase(yyruleno==39);
-      case 40: /* value ::= HEX */ yytestcase(yyruleno==40);
-      case 41: /* value ::= NUMBER_FLOAT */ yytestcase(yyruleno==41);
-      case 44: /* colsdef ::= coldef */ yytestcase(yyruleno==44);
-      case 46: /* type ::= INT */ yytestcase(yyruleno==46);
-      case 47: /* type ::= FLOAT */ yytestcase(yyruleno==47);
-      case 48: /* type ::= TEXT */ yytestcase(yyruleno==48);
-#line 39 "parse.y"
+      case 15: /* op1 ::= PLUS */ yytestcase(yyruleno==15);
+      case 16: /* op1 ::= MINUS */ yytestcase(yyruleno==16);
+      case 17: /* op2 ::= STAR */ yytestcase(yyruleno==17);
+      case 18: /* op2 ::= SLASH */ yytestcase(yyruleno==18);
+      case 19: /* op2 ::= PERCENT */ yytestcase(yyruleno==19);
+      case 20: /* op3 ::= MORE */ yytestcase(yyruleno==20);
+      case 21: /* op3 ::= LESS */ yytestcase(yyruleno==21);
+      case 22: /* op3 ::= EQUAL */ yytestcase(yyruleno==22);
+      case 23: /* op3 ::= NOT_EQUAL */ yytestcase(yyruleno==23);
+      case 24: /* op3 ::= MORE_EQUAL */ yytestcase(yyruleno==24);
+      case 25: /* op3 ::= LESS_EQUAL */ yytestcase(yyruleno==25);
+      case 27: /* or_expr ::= and_expr */ yytestcase(yyruleno==27);
+      case 29: /* and_expr ::= compare_expr */ yytestcase(yyruleno==29);
+      case 31: /* compare_expr ::= compute_expr1 */ yytestcase(yyruleno==31);
+      case 33: /* compute_expr1 ::= compute_expr2 */ yytestcase(yyruleno==33);
+      case 35: /* compute_expr2 ::= factor */ yytestcase(yyruleno==35);
+      case 36: /* factor ::= item */ yytestcase(yyruleno==36);
+      case 40: /* data_values ::= value */ yytestcase(yyruleno==40);
+      case 41: /* value ::= STRING */ yytestcase(yyruleno==41);
+      case 42: /* value ::= NUMBER_INT */ yytestcase(yyruleno==42);
+      case 43: /* value ::= HEX */ yytestcase(yyruleno==43);
+      case 44: /* value ::= NUMBER_FLOAT */ yytestcase(yyruleno==44);
+      case 47: /* colsdef ::= coldef */ yytestcase(yyruleno==47);
+      case 49: /* type ::= INT */ yytestcase(yyruleno==49);
+      case 50: /* type ::= FLOAT */ yytestcase(yyruleno==50);
+      case 51: /* type ::= TEXT */ yytestcase(yyruleno==51);
+#line 41 "parse.y"
 {yylhsminor.yy0=yymsp[0].minor.yy0;}
-#line 1199 "parse.c"
+#line 1219 "parse.c"
   yymsp[0].minor.yy0 = yylhsminor.yy0;
         break;
-      case 9: /* exprs ::= exprs COMMA expr */
-      case 36: /* data_values ::= data_values COMMA value */ yytestcase(yyruleno==36);
-      case 43: /* colsdef ::= colsdef COMMA coldef */ yytestcase(yyruleno==43);
-#line 41 "parse.y"
+      case 9: /* exprs ::= exprs COMMA or_expr */
+      case 39: /* data_values ::= data_values COMMA value */ yytestcase(yyruleno==39);
+      case 46: /* colsdef ::= colsdef COMMA coldef */ yytestcase(yyruleno==46);
+#line 43 "parse.y"
 {
     token* temp = yymsp[-2].minor.yy0;
-    while(temp->brother!= nullptr) temp = temp->brother;
-    temp->brother = yymsp[0].minor.yy0;
+    while(temp->next!= nullptr) temp = temp->next;
+    temp->next = yymsp[0].minor.yy0;
     yylhsminor.yy0=yymsp[-2].minor.yy0;}
-#line 1211 "parse.c"
+#line 1231 "parse.c"
   yymsp[-2].minor.yy0 = yylhsminor.yy0;
         break;
-      case 30: /* factor ::= factor op item */
-#line 70 "parse.y"
-{
-    token* temp = yymsp[-2].minor.yy0;
-    while(temp->child) temp = temp->child;
-    temp->child = yymsp[-1].minor.yy0;
-    yymsp[-1].minor.yy0->child = yymsp[0].minor.yy0;
-    yylhsminor.yy0 = yymsp[-2].minor.yy0;}
-#line 1222 "parse.c"
+      case 26: /* or_expr ::= or_expr OR and_expr */
+      case 28: /* and_expr ::= and_expr AND compare_expr */ yytestcase(yyruleno==28);
+      case 30: /* compare_expr ::= compare_expr op3 compute_expr1 */ yytestcase(yyruleno==30);
+      case 32: /* compute_expr1 ::= compute_expr1 op1 compute_expr2 */ yytestcase(yyruleno==32);
+      case 34: /* compute_expr2 ::= compute_expr2 op2 factor */ yytestcase(yyruleno==34);
+#line 69 "parse.y"
+{yymsp[-1].minor.yy0->left = yymsp[-2].minor.yy0; yymsp[-1].minor.yy0->right = yymsp[0].minor.yy0;yylhsminor.yy0=yymsp[-1].minor.yy0;}
+#line 1241 "parse.c"
   yymsp[-2].minor.yy0 = yylhsminor.yy0;
         break;
-      case 32: /* factor ::= PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
-#line 78 "parse.y"
-{
-    yymsp[-2].minor.yy0->child = yymsp[-1].minor.yy0;
-    token * temp = yymsp[-1].minor.yy0;
-    while(temp->child) temp = temp->child;
-    temp->child = yymsp[0].minor.yy0;
-    yylhsminor.yy0 = yymsp[-2].minor.yy0;}
-#line 1233 "parse.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
-        break;
-      case 33: /* factor ::= factor op PARENTHESIS_LEFT factor PARENTHESIS_RIGHT */
+      case 37: /* factor ::= PARENTHESIS_LEFT or_expr PARENTHESIS_RIGHT */
 #line 85 "parse.y"
-{
-    token * temp = yymsp[-4].minor.yy0;
-    while(temp->child) temp = temp->child;
-    temp->child = yymsp[-3].minor.yy0;
-    yymsp[-3].minor.yy0->child = yymsp[-2].minor.yy0;
-    yymsp[-2].minor.yy0->child = yymsp[-1].minor.yy0;
-    temp = yymsp[-1].minor.yy0;
-    while(temp->child) temp = temp->child;
-    temp->child = yymsp[0].minor.yy0;
-    yylhsminor.yy0 = yymsp[-4].minor.yy0;}
-#line 1248 "parse.c"
-  yymsp[-4].minor.yy0 = yylhsminor.yy0;
+{yymsp[-2].minor.yy0=yymsp[-1].minor.yy0;}
+#line 1247 "parse.c"
         break;
-      case 35: /* cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
-#line 103 "parse.y"
+      case 38: /* cmd ::= INSERT INTO NAME VALUES PARENTHESIS_LEFT data_values PARENTHESIS_RIGHT SEMI */
+#line 91 "parse.y"
 {
-    result->type = token_type::insert;
-    result->target = yymsp[-5].minor.yy0;
-    result->master = yymsp[-2].minor.yy0;
+    ast->type = token_type::insert;
+    ast->target_table = yymsp[-5].minor.yy0;
+    ast->master = yymsp[-2].minor.yy0;
 }
-#line 1258 "parse.c"
+#line 1256 "parse.c"
         break;
-      case 42: /* cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
-#line 121 "parse.y"
+      case 45: /* cmd ::= CREATE TABLE NAME PARENTHESIS_LEFT colsdef PARENTHESIS_RIGHT SEMI */
+#line 109 "parse.y"
 {
-    result->type = token_type::create;
-    result->target = yymsp[-4].minor.yy0;
-    result->master = yymsp[-2].minor.yy0;
+    ast->type = token_type::create;
+    ast->target_table = yymsp[-4].minor.yy0;
+    ast->master = yymsp[-2].minor.yy0;
 }
-#line 1267 "parse.c"
+#line 1265 "parse.c"
         break;
-      case 45: /* coldef ::= NAME type */
-#line 132 "parse.y"
-{yymsp[-1].minor.yy0->child = yymsp[0].minor.yy0; yylhsminor.yy0=yymsp[-1].minor.yy0;}
-#line 1272 "parse.c"
+      case 48: /* coldef ::= NAME type */
+#line 120 "parse.y"
+{yymsp[-1].minor.yy0->left = yymsp[0].minor.yy0; yylhsminor.yy0=yymsp[-1].minor.yy0;}
+#line 1270 "parse.c"
   yymsp[-1].minor.yy0 = yylhsminor.yy0;
         break;
-      case 49: /* cmd ::= DELETE FROM NAME where_statement SEMI */
-#line 139 "parse.y"
+      case 52: /* cmd ::= DELETE FROM NAME where_statement SEMI */
+#line 127 "parse.y"
 {
-    result->type = token_type::Delete;
-    result->target = yymsp[-2].minor.yy0;
-    result->filter = yymsp[-1].minor.yy0;
+    ast->type = token_type::Delete;
+    ast->target_table = yymsp[-2].minor.yy0;
+    ast->where = yymsp[-1].minor.yy0;
 }
-#line 1282 "parse.c"
+#line 1280 "parse.c"
         break;
-      case 50: /* cmd ::= DROP TABLE NAME SEMI */
-#line 145 "parse.y"
+      case 53: /* cmd ::= DROP TABLE NAME SEMI */
+#line 133 "parse.y"
 {
-    result->type = token_type::drop;
-    result->target = yymsp[-1].minor.yy0;
+    ast->type = token_type::drop;
+    ast->target_table = yymsp[-1].minor.yy0;
 }
-#line 1290 "parse.c"
+#line 1288 "parse.c"
         break;
       default:
         break;
@@ -1334,8 +1332,8 @@ static void yy_parse_failed(
 #line 11 "parse.y"
 
      fprintf(stdout,"Parser failed\n");
-     result->type = token_type::error;
-#line 1338 "parse.c"
+     ast->type = token_type::error;
+#line 1336 "parse.c"
 /************ End %parse_failure code *****************************************/
   ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   ParseCTX_STORE
@@ -1357,8 +1355,8 @@ static void yy_syntax_error(
 #line 15 "parse.y"
 
     fprintf(stdout,"syntax error happened\n");
-    result->type = token_type::error;
-#line 1361 "parse.c"
+    ast->type = token_type::error;
+#line 1359 "parse.c"
 /************ End %syntax_error code ******************************************/
   ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   ParseCTX_STORE

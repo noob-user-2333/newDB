@@ -5,21 +5,12 @@
 #include <cmath>
 namespace iedb
 {
-    column_data_type& row::operator[](const int index)
+    column_value& row::operator[](const int index)
     {
-        if (index >= size)
-            throw std::out_of_range("row index out of range");
-        return values[index];
+        return values.at(index);
     }
 
-    column_data_type& row::operator[](const int64 index)
-    {
-        if (index >= size)
-            throw std::out_of_range("row index out of range");
-        return values[index];
-    }
-
-    column_type row::get_column_type(const column_data_type& data)
+    column_type row::get_column_type(const column_value& data)
     {
         switch (data.index())
         {
@@ -37,10 +28,10 @@ namespace iedb
     // 注:所有情况下字符串单独处理，不会进入operation函数
     // 工具函数：处理两个 column_data_type 的运算
     template <typename Op>
-    column_data_type apply_operation(const column_data_type& v1, const column_data_type& v2,
+    column_value apply_operation(const column_value& v1, const column_value& v2,
                                      Op op)
     {
-        return std::visit([&op](auto&& lhs, auto&& rhs) -> column_data_type
+        return std::visit([&op](auto&& lhs, auto&& rhs) -> column_value
         {
             using LType = std::decay_t<decltype(lhs)>;
             using RType = std::decay_t<decltype(rhs)>;
@@ -54,17 +45,17 @@ namespace iedb
                 const auto right = static_cast<double>(rhs);
                 //如果是 std::modulus，使用 std::fmod
                 if constexpr (std::is_same_v<Op, std::modulus<>>) {
-                    return column_data_type{std::fmod(left, right)};
+                    return column_value{std::fmod(left, right)};
                 }else
                 {
-                    return column_data_type(op(left,right));
+                    return column_value(op(left,right));
                 }
             }
             throw std::runtime_error("should not run here of apply_operation");
         }, v1, v2);
     }
 
-    int64 apply_compare_operation(const column_data_type& v1, const column_data_type& v2)
+    int64 apply_compare_operation(const column_value& v1, const column_value& v2)
     {
         return std::visit([](auto&& lhs, auto&& rhs) -> int64
         {
@@ -90,7 +81,7 @@ namespace iedb
     }
 
     // 加法运算
-    int row::column_data_add(const column_data_type& data1, const column_data_type& data2, column_data_type& out_result)
+    int row::column_data_add(const column_value& data1, const column_value& data2, column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -100,8 +91,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_minus(const column_data_type& data1, const column_data_type& data2,
-                               column_data_type& out_result)
+    int row::column_data_minus(const column_value& data1, const column_value& data2,
+                               column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -111,7 +102,7 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_mul(const column_data_type& data1, const column_data_type& data2, column_data_type& out_result)
+    int row::column_data_mul(const column_value& data1, const column_value& data2, column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -121,7 +112,7 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_div(const column_data_type& data1, const column_data_type& data2, column_data_type& out_result)
+    int row::column_data_div(const column_value& data1, const column_value& data2, column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -131,7 +122,7 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_mod(const column_data_type& data1, const column_data_type& data2, column_data_type& out_result)
+    int row::column_data_mod(const column_value& data1, const column_value& data2, column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -141,8 +132,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_more(const column_data_type& data1, const column_data_type& data2,
-                              column_data_type& out_result)
+    int row::column_data_more(const column_value& data1, const column_value& data2,
+                              column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -153,8 +144,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_less(const column_data_type& data1, const column_data_type& data2,
-                              column_data_type& out_result)
+    int row::column_data_less(const column_value& data1, const column_value& data2,
+                              column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -165,8 +156,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_more_equal(const column_data_type& data1, const column_data_type& data2,
-                                    column_data_type& out_result)
+    int row::column_data_more_equal(const column_value& data1, const column_value& data2,
+                                    column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -177,8 +168,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_less_equal(const column_data_type& data1, const column_data_type& data2,
-                                    column_data_type& out_result)
+    int row::column_data_less_equal(const column_value& data1, const column_value& data2,
+                                    column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -189,8 +180,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_equal(const column_data_type& data1, const column_data_type& data2,
-                               column_data_type& out_result)
+    int row::column_data_equal(const column_value& data1, const column_value& data2,
+                               column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
@@ -213,8 +204,8 @@ namespace iedb
         return status_ok;
     }
 
-    int row::column_data_not_equal(const column_data_type& data1, const column_data_type& data2,
-                                   column_data_type& out_result)
+    int row::column_data_not_equal(const column_value& data1, const column_value& data2,
+                                   column_value& out_result)
     {
         const auto type1 = get_column_type(data1);
         const auto type2 = get_column_type(data2);
