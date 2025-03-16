@@ -4,7 +4,7 @@
 
 #ifndef TIMER_H
 #define TIMER_H
-
+#include <iostream>
 #include <chrono>
 class timer
 {
@@ -26,6 +26,9 @@ public:
     {
         const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         return duration.count();
+    }
+    void printf() const {
+        std::cout << "代码执行耗时: " << cost_time_for_us() << " 微秒" << std::endl;
     }
 };
 

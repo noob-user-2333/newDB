@@ -7,22 +7,30 @@
 #include "newDB.h"
 #include "table.h"
 #include "utility.h"
+#include "vdbe_expr.h"
+
 struct DBreader {
 private:
-    struct row {
-        uint64_t key;
-        std::vector<iedb::column_value> values;
-    };
-    int pos;
-    std::vector<row> rows;
+
+    std::vector<iedb::table::row> rows;
+    std::vector<iedb::column_value> values;
+    std::vector<std::unique_ptr<iedb::vdbe_expr>> exprs;
+    std::vector<iedb::table::row>::iterator it;
+    bool have_read;
+    [[nodiscard]] const iedb::column_value& get_column(int column)const ;
 public:
     DBreader() = default;
     int next();
+    int prev();
     [[nodiscard]] int get_column_bytes(int column) const;
-    int64_t get_column_int(int column);
-    double get_column_double(int column);
-    const char* get_column_string(int column);
-    constexpr void append_row(uint64_t key,std::vector<iedb::column_value>&row_data) {rows.push_back({key, row_data});}
+    [[nodiscard]] int64_t get_column_int(int column) const;
+    [[nodiscard]] double get_column_double(int column) const;
+    [[nodiscard]] const char* get_column_string(int column) const;
+    constexpr void swap(std::vector<iedb::table::row>&rows,std::vector<std::unique_ptr<iedb::vdbe_expr>>&exprs) {
+        this->rows.swap(rows);
+        this->exprs.swap(exprs);
+        have_read = false;
+    }
 
 };
 

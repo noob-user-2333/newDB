@@ -60,7 +60,7 @@ namespace iedb
 
     int vdbe_cursor::create_table(const table& _table)
     {
-        static char buffer[1024 * 1024];
+        static std::vector<uint8> buffer;
         static char sql[4096];
         auto& name = _table.get_name();
         if (get_table(name))
@@ -71,7 +71,7 @@ namespace iedb
         sqlite3_stmt*stmt;
         len = sprintf(sql,"INSERT INTO tables VALUES('%s',?);",name.c_str());
         assert(sqlite3_prepare(get_sqlite(),sql,len,&stmt,nullptr) == SQLITE_OK);
-        assert(sqlite3_bind_blob(stmt,1,buffer,size,nullptr) == SQLITE_OK);
+        assert(sqlite3_bind_blob(stmt,1,buffer.data(),buffer.size(),nullptr) == SQLITE_OK);
         assert(sqlite3_step(stmt) == SQLITE_DONE);
         sqlite3_finalize(stmt);
         return status_ok;
@@ -81,7 +81,7 @@ namespace iedb
     {
         static char buffer[1024];
         assert(writable == false &&stmt == nullptr);
-        auto len = sprintf(buffer, "SELECT * FROM %s ORDER BY id ASC;", _table->get_name().c_str());
+        auto len = sprintf(buffer, "SELECT id,content FROM %s ORDER BY id ASC;", _table->get_name().c_str());
         auto status = sqlite3_prepare_v2(db,buffer,len,&stmt,nullptr);
         assert(status == SQLITE_OK);
         writable = false;
@@ -161,9 +161,9 @@ namespace iedb
 
     int vdbe_cursor::get_record(uint64&out_rowid,std::vector<uint8>& out_record)
     {
-        out_rowid = sqlite3_column_int64(stmt,1);
-        out_record.resize(sqlite3_column_bytes(stmt,2));
-        memcpy(out_record.data(),sqlite3_column_blob(stmt,2),out_record.size());
+        out_rowid = sqlite3_column_int64(stmt,0);
+        out_record.resize(sqlite3_column_bytes(stmt,1));
+        memcpy(out_record.data(),sqlite3_column_blob(stmt,1),out_record.size());
         return status_ok;
     }
 

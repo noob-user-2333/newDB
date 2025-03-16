@@ -16,18 +16,17 @@
  */
 
 
-namespace iedb
-{
-    enum class column_type
-    {
+namespace iedb {
+    enum class column_type {
         unknown,
         Int,
         Float,
         text
     };
-    using column_value = std::variant<uint64, double, std::string>;
-    struct col_def
-    {
+
+    using column_value = std::variant<int64, double, std::string>;
+
+    struct col_def {
         static constexpr int name_len = 32;
         char name[name_len];
         column_type type;
@@ -39,7 +38,8 @@ namespace iedb
         int32 line_offset;
 
         col_def() = default;
-        col_def(const char* name, column_type type, uint32 element_count, int32 line_offset);
+
+        col_def(const char *name, column_type type, uint32 element_count, int32 line_offset);
     };
 
     /*
@@ -52,35 +52,53 @@ namespace iedb
      *
      */
     //核心功能为读取指定文件，将其内容翻译为表格式
-    class table
-    {
+    class table {
     private:
         std::string name;
-        std::unordered_map<std::string,int> name_to_col;
+        std::unordered_map<std::string, int> name_to_col;
         std::vector<col_def> cols;
         int fixed_len_data_size;
 
 
         explicit table(std::string name);
-        table(std::string& name, std::vector<col_def>& cols);
+
+        table(std::string &name, std::vector<col_def> &cols);
+
         static int get_data_type_size(column_type type);
 
     public:
-        table() = delete;
-        static std::unique_ptr<table> get(const void* buffer, uint64 size);
-        static std::unique_ptr<table> create_new(std::string name);
-        static int64 translate_to_buffer(const table& translate_table,std::vector<uint8> &buffer);
-        static column_type translate_token_to_column_type(token_type type);
-        int get_table_size() const;
-        const std::string& get_name() const;
-        int get_fixed_len_data_size() const;
-        int get_col_index_by_name(const std::string& name) const;
-        inline const col_def* get_col_by_index(int index) const{return &cols.at(index);}
-        int get_col_count() const;
-        int add_column(const std::string& name, column_type type, uint32 element_count);
+        struct row {
+            uint64_t key;
+            std::vector<iedb::column_value> values;
+        };
 
-        void load_row_from_record(const std::vector<uint8> & record,std::vector<column_value>&row) const;
-        int store_row_to_record(const std::vector<column_value>& row_data,std::vector<uint8> & out_record) const;
+        table() = delete;
+
+        static std::unique_ptr<table> get(const void *buffer, uint64 size);
+
+        static std::unique_ptr<table> create_new(std::string name);
+
+        static int64 translate_to_buffer(const table &translate_table, std::vector<uint8> &buffer);
+
+        static column_type translate_token_to_column_type(token_type type);
+
+        int get_table_size() const;
+
+        const std::string &get_name() const;
+
+        int get_fixed_len_data_size() const;
+
+        int get_col_index_by_name(const std::string &name) const;
+
+        inline const col_def *get_col_by_index(int index) const { return &cols.at(index); }
+
+        int get_col_count() const;
+
+        int add_column(const std::string &name, column_type type, uint32 element_count);
+
+        void load_row_from_record(const std::vector<uint8> &record, std::vector<column_value> &row) const;
+
+        int store_row_to_record(const std::vector<column_value> &row_data, std::vector<uint8> &out_record) const;
     };
 }
 #endif //TABLE_H

@@ -281,8 +281,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*    80 */    14,   20,   18,  187,    7,    2,  102,  119,  120,  118,
  /*    90 */   115,  116,   35,  117,  198,    1,   42,   23,   48,   37,
  /*   100 */    33,   39,  107,  108,  109,  106,  188,   58,   60,    5,
- /*   110 */    52,   15,   20,   18,  187,  136,  138,  137,  139,  144,
- /*   120 */   145,  146,   16,   24,   25,  205,   44,   30,   31,   32,
+ /*   110 */    24,   15,   20,   18,  187,  136,  138,  137,  139,  144,
+ /*   120 */   145,  146,   16,   52,   25,  205,   44,   30,   31,   32,
  /*   130 */   204,   34,   22,   36,  197,   38,   41,   40,   13,  190,
  /*   140 */    43,   46,   45,   12,   47,    6,    3,    4,    7,    8,
  /*   150 */   152,   59,   26,   61,
@@ -298,9 +298,9 @@ static const YYCODETYPE yy_lookahead[] = {
  /*    70 */    65,    3,    4,    5,    6,   57,   59,   58,   10,   61,
  /*    80 */    62,   63,   64,   65,   32,   40,   18,   20,   21,   22,
  /*    90 */    23,   24,   52,   26,   69,   33,   34,    7,   36,   37,
- /*   100 */    38,   11,    3,    4,    5,    6,   57,   42,   54,   10,
- /*   110 */    41,   62,   63,   64,   65,    2,    3,    4,    5,   45,
- /*   120 */    46,   47,    7,   53,   52,    0,   11,    8,    6,   44,
+ /*   100 */    38,   11,    3,    4,    5,    6,   57,   41,   54,   10,
+ /*   110 */    53,   62,   63,   64,   65,    2,    3,    4,    5,   45,
+ /*   120 */    46,   47,    7,   42,   52,    0,   11,    8,    6,   44,
  /*   130 */     0,    8,    6,   39,    0,    8,   44,    6,   10,    0,
  /*   140 */     8,    6,   49,   10,   48,    7,   43,   43,   32,   31,
  /*   150 */     0,    8,    6,   39,   71,   71,   71,   71,   71,   71,
@@ -316,7 +316,7 @@ static const YYCODETYPE yy_lookahead[] = {
 static const unsigned char yy_shift_ofst[] = {
  /*     0 */    62,   68,   99,   99,   99,   99,   99,   99,   99,   99,
  /*    10 */    99,   99,  113,   46,   67,   67,  113,   74,    0,    0,
- /*    20 */    24,   24,   45,   46,   65,   69,   45,   90,  115,   52,
+ /*    20 */    24,   24,   45,   46,   66,   81,   45,   90,  115,   52,
  /*    30 */   125,  119,  122,   85,  130,  123,  126,   94,  134,  127,
  /*    40 */   128,  131,   92,  139,  132,  133,   93,  135,   96,  138,
  /*    50 */   138,  138,  103,  116,  118,  118,  116,  138,  104,  150,
@@ -328,15 +328,15 @@ static const unsigned char yy_shift_ofst[] = {
 static const signed char yy_reduce_ofst[] = {
  /*     0 */   -30,  -51,  -40,  -29,  -18,   -8,    5,   18,   49,  -56,
  /*    10 */    -6,  -15,  -64,  -38,    4,    4,   -7,   -5,   17,   17,
- /*    20 */    19,   19,   40,   25,   54,   70,   72,
+ /*    20 */    19,   19,   40,   25,   54,   57,   72,
 };
 static const YYACTIONTYPE yy_default[] = {
  /*     0 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  149,
  /*    10 */   149,  149,  149,  149,  181,  180,  149,  149,  185,  184,
- /*    20 */   183,  182,  153,  149,  157,  155,  153,  149,  149,  149,
+ /*    20 */   183,  182,  153,  149,  155,  157,  153,  149,  149,  149,
  /*    30 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  149,
  /*    40 */   149,  149,  149,  149,  149,  149,  149,  149,  149,  160,
- /*    50 */   154,  156,  149,  162,  179,  178,  161,  158,  149,  149,
+ /*    50 */   154,  158,  149,  162,  179,  178,  161,  156,  149,  149,
  /*    60 */   149,  149,  149,
 };
 /********** End of lemon-generated parsing tables *****************************/
@@ -493,8 +493,8 @@ static const char *const yyTokenName[] = {
   /*   50 */ "cmd",
   /*   51 */ "colnames",
   /*   52 */ "where_statement",
-  /*   53 */ "order_statement",
-  /*   54 */ "group_statement",
+  /*   53 */ "group_statement",
+  /*   54 */ "order_statement",
   /*   55 */ "exprs",
   /*   56 */ "or_expr",
   /*   57 */ "item",
@@ -518,7 +518,7 @@ static const char *const yyTokenName[] = {
 /* For tracing reduce actions, the names of all rules are required.
 */
 static const char *const yyRuleName[] = {
- /*   0 */ "cmd ::= SELECT colnames FROM NAME where_statement order_statement group_statement SEMI",
+ /*   0 */ "cmd ::= SELECT colnames FROM NAME where_statement group_statement order_statement SEMI",
  /*   1 */ "where_statement ::=",
  /*   2 */ "where_statement ::= WHERE exprs",
  /*   3 */ "order_statement ::=",
@@ -992,13 +992,13 @@ static void yy_shift(
 /* For rule J, yyRuleInfoLhs[J] contains the symbol on the left-hand side
 ** of that rule */
 static const YYCODETYPE yyRuleInfoLhs[] = {
-    50,  /* (0) cmd ::= SELECT colnames FROM NAME where_statement order_statement group_statement SEMI */
+    50,  /* (0) cmd ::= SELECT colnames FROM NAME where_statement group_statement order_statement SEMI */
     52,  /* (1) where_statement ::= */
     52,  /* (2) where_statement ::= WHERE exprs */
-    53,  /* (3) order_statement ::= */
-    53,  /* (4) order_statement ::= ORDER BY exprs */
-    54,  /* (5) group_statement ::= */
-    54,  /* (6) group_statement ::= GROUP BY exprs */
+    54,  /* (3) order_statement ::= */
+    54,  /* (4) order_statement ::= ORDER BY exprs */
+    53,  /* (5) group_statement ::= */
+    53,  /* (6) group_statement ::= GROUP BY exprs */
     51,  /* (7) colnames ::= STAR */
     51,  /* (8) colnames ::= exprs */
     55,  /* (9) exprs ::= exprs COMMA or_expr */
@@ -1051,7 +1051,7 @@ static const YYCODETYPE yyRuleInfoLhs[] = {
 /* For rule J, yyRuleInfoNRhs[J] contains the negative of the number
 ** of symbols on the right-hand side of that rule. */
 static const signed char yyRuleInfoNRhs[] = {
-   -8,  /* (0) cmd ::= SELECT colnames FROM NAME where_statement order_statement group_statement SEMI */
+   -8,  /* (0) cmd ::= SELECT colnames FROM NAME where_statement group_statement order_statement SEMI */
     0,  /* (1) where_statement ::= */
    -2,  /* (2) where_statement ::= WHERE exprs */
     0,  /* (3) order_statement ::= */
@@ -1146,7 +1146,7 @@ static YYACTIONTYPE yy_reduce(
   */
 /********** Begin reduce actions **********************************************/
         YYMINORTYPE yylhsminor;
-      case 0: /* cmd ::= SELECT colnames FROM NAME where_statement order_statement group_statement SEMI */
+      case 0: /* cmd ::= SELECT colnames FROM NAME where_statement group_statement order_statement SEMI */
 #line 25 "parse.y"
 {
     ast->type = token_type::select;
@@ -1154,8 +1154,8 @@ static YYACTIONTYPE yy_reduce(
 
     ast->master = yymsp[-6].minor.yy0;
     ast->where = yymsp[-3].minor.yy0;
-    ast->order = yymsp[-2].minor.yy0;
-    ast->group = yymsp[-1].minor.yy0;
+    ast->order = yymsp[-1].minor.yy0;
+    ast->group = yymsp[-2].minor.yy0;
     }
 #line 1160 "parse.c"
         break;

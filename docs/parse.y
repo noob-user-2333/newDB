@@ -22,7 +22,7 @@ GROUP BY TABLE INT FLOAT TEXT INTO VALUES .
     using namespace iedb;
 }//end include
 //查询语句
-cmd ::= SELECT colnames(A) FROM NAME(B) where_statement(C) order_statement(D) group_statement(E) SEMI. {
+cmd ::= SELECT colnames(A) FROM NAME(B) where_statement(C)  group_statement(E) order_statement(D) SEMI. {
     ast->type = token_type::select;
     ast->target_table = B;
 

@@ -94,14 +94,14 @@ namespace iedb {
             memcpy(data, &translate_table.cols[i], sizeof(col_def));
             data += sizeof(col_def);
         }
-        return size;
+        return static_cast<int64>(size);
     }
 
     column_type table::translate_token_to_column_type(token_type type) {
         switch (type) {
-            case token_type::number_int:
+            case token_type::Int:
                 return column_type::Int;
-            case token_type::number_float:
+            case token_type::Float:
                 return column_type::Float;
             case token_type::text:
                 return column_type::text;
@@ -190,15 +190,15 @@ namespace iedb {
     //
     void table::load_row_from_record(const std::vector<uint8> &record, std::vector<column_value> &row) const {
         auto col_count = cols.size();
-        auto data = record.data();
         row.resize(col_count);
+        auto data = record.data();
         for (auto i = 0; i < col_count; i++) {
             auto &col = cols[i];
             int64 offset = col.line_offset;
             auto start = data + offset;
             switch (col.type) {
                 case column_type::Int: {
-                    row[i] = *reinterpret_cast<const uint64 *>(start);
+                    row[i] = *reinterpret_cast<const int64 *>(start);
                     break;
                 }
                 case column_type::Float: {
@@ -222,8 +222,6 @@ namespace iedb {
         auto fix_len = 8 * row_data.size();
         auto len_count = fix_len;
         auto row_count = row_data.size();
-
-
         for (auto i = 0; i < row_count; i++) {
             const auto &col = cols[i];
             auto index = row_data[i].index();
@@ -253,11 +251,10 @@ namespace iedb {
         auto row_offset = fix_len;
         for (auto i = 0 ;i < row_count ; i++) {
             const auto &col = cols[i];
-            auto index = row_data[i].index();
             switch (col.type) {
                 case column_type::Int: {
                     auto offset = cols[i].line_offset;
-                    auto value = std::get<uint64>(row_data[i]);
+                    auto value = std::get<int64>(row_data[i]);
                     memcpy(out_record.data() + offset,&value,sizeof(double));
                     break;
                 }

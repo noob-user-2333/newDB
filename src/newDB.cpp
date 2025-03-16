@@ -8,7 +8,7 @@
 #include "AST.h"
 #include "DBreader.h"
 #include "vdbe.h"
-#include "vdbe_call.h"
+#include "../backup/vdbe_call.h"
 using namespace iedb;
 
 static uint64 get_time() {
@@ -42,7 +42,7 @@ static column_value token_to_column_value(token *t) {
             char *end;
             auto num = std::strtol(t->sql + t->offset, &end, 10);
             assert(end == t->sql + t->offset + t->len);
-            return static_cast<uint64>(num);
+            return static_cast<int64>(num);
         }
         case token_type::number_float: {
             char *end;
@@ -54,7 +54,7 @@ static column_value token_to_column_value(token *t) {
             char *end;
             auto num = std::strtol(t->sql + t->offset + 2, &end, 16);
             assert(end == t->sql + t->offset + t->len);
-            return static_cast<uint64>(num);
+            return static_cast<int64>(num);
         }
         default:
             throw std::runtime_error("should never happen");

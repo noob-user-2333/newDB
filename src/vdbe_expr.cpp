@@ -5,6 +5,26 @@
 #include <cmath>
 
 namespace iedb {
+    vdbe_expr::Hash::Hash() {
+        state = XXH64_createState();
+        XXH64_reset(state,0);
+    }
+    vdbe_expr::Hash::~Hash() {
+        XXH64_freeState(state);
+    }
+    void vdbe_expr::Hash::reset() const {
+        XXH64_reset(state,0);
+    }
+
+    uint64 vdbe_expr::Hash::get_hash() const {
+        return XXH64_digest(state);
+    }
+    std::unique_ptr<vdbe_expr::Hash> vdbe_expr::get_Hash() {
+        return std::unique_ptr<vdbe_expr::Hash>(new Hash());
+    }
+
+
+
     // 注:所有情况下字符串单独处理，不会进入operation函数
     // 工具函数：处理两个 column_data_type 的运算
     template<typename Op>
@@ -35,7 +55,7 @@ namespace iedb {
             using LType = std::decay_t<decltype(lhs)>;
             using RType = std::decay_t<decltype(rhs)>;
             if constexpr (std::is_same_v<LType, int64> && std::is_same_v<RType, int64>) {
-                return std::minus<>{}(lhs, rhs);
+                return std::minus<>{}(static_cast<int64>(lhs),static_cast<int64>(rhs));
             }
             if constexpr ((std::is_arithmetic_v<LType> && std::is_arithmetic_v<RType>)) {
                 const auto left = static_cast<double>(lhs);
@@ -54,7 +74,7 @@ namespace iedb {
     bool vdbe_expr::is_zero(const column_value& var) {
         return std::visit([](const auto& value) -> bool {
             using T = std::decay_t<decltype(value)>;
-            if constexpr (std::is_same_v<T, uint64_t> || std::is_same_v<T, double>) {
+            if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, double>) {
                 return value == 0;
             } else if constexpr (std::is_same_v<T, std::string>) {
                 return value.empty();
@@ -66,9 +86,12 @@ namespace iedb {
         switch (token_op->type) {
             case token_type::name: {
                 auto index = _table.get_col_index_by_name(token_op->to_string());
-                if (index < 0)
-                    return {token_type::error, 0UL};
-                return {token_type::name, static_cast<uint64>(index)};
+                if (index < 0) {
+                    char buff[1024];
+                    sprintf(buff,"can not found column name of %s from %s\n",token_op->to_string().c_str(),_table.get_name().c_str());
+                    throw std::runtime_error(buff);
+                }
+                return {token_type::name, static_cast<int64>(index)};
             }
             case token_type::string: {
                 return {token_type::string, token_op->to_string()};
@@ -77,7 +100,7 @@ namespace iedb {
                 char *end;
                 auto num = std::strtol(token_op->sql + token_op->offset, &end, 10);
                 assert(end == token_op->sql + token_op->offset + token_op->len);
-                return {token_type::number_int, static_cast<uint64>(num)};
+                return {token_type::number_int, static_cast<int64>(num)};
             }
             case token_type::number_float: {
                 char *end;
@@ -89,7 +112,7 @@ namespace iedb {
                 char *end;
                 auto num = std::strtol(token_op->sql + token_op->offset + 2, &end, 16);
                 assert(end == token_op->sql + token_op->offset + token_op->len);
-                return {token_type::number_int, static_cast<uint64>(num)};
+                return {token_type::number_int, static_cast<int64>(num)};
             }
             case token_type::plus:
             case token_type::minus:
@@ -104,7 +127,7 @@ namespace iedb {
             case token_type::not_equal:
             case token_type::And:
             case token_type::Or: {
-                return {token_op->type, 0UL};
+                return {token_op->type, 0L};
             }
             default:
                 throw std::runtime_error("unsupported token type");
@@ -123,7 +146,7 @@ namespace iedb {
                 break;
             }
             case token_type::name: {
-                auto index = std::get<uint64_t>(op.value);
+                auto index = std::get<int64_t>(op.value);
                 stack.emplace(row_data.at(index));
                 break;
             }
@@ -276,6 +299,31 @@ namespace iedb {
         stack.pop();
         assert(stack.empty());
         return std::move(v);
+    }
+    void vdbe_expr::update_hash(Hash&hash,const std::vector<column_value> &row_data) {
+        auto v = run(row_data);
+        switch (v.index()) {
+            case 0: {
+                //uint64
+                auto& value = std::get<int64>(v);
+                XXH64_update(hash.state,&value,sizeof(value));
+                return;
+            }
+                case 1: {
+                //double
+                auto& value = std::get<double>(v);
+                XXH64_update(hash.state,&value,sizeof(value));
+                return;
+                }
+            case 2: {
+                //string
+                const auto& value = std::get<std::string>(v);
+                XXH64_update(hash.state,value.c_str(),value.size());
+                return;
+            }
+            default:
+                throw std::runtime_error("should not happened");
+        }
     }
 
 }

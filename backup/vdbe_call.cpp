@@ -4,7 +4,7 @@
 #include <chrono>
 
 #include "vdbe_call.h"
-#include "vdbe_cursor.h"
+#include "../include/vdbe_cursor.h"
 
 namespace iedb
 {

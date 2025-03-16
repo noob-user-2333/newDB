@@ -7,7 +7,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 link_directories(lib)
 include_directories(include)
 aux_source_directory(src SOURCES)
@@ -31,17 +31,12 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         #test
         test/test.h
         test/function.cpp
-        src/newDB-query.cpp
-        include/DBreader.h
-        src/DBreader.cpp
-        include/vdbe_expr.h
-        src/vdbe_expr.cpp
         #        test/test_pager.cpp
 #        test/test_btree_page.cpp
 #        test/test_btree.cpp
 #        test/test_btree_internal_page.cpp
 )
-target_link_libraries(newDB ${GTEST_LIBRARIES} pthread)
+target_link_libraries(newDB ${GTEST_LIBRARIES} pthread xxhash)
 
 add_library(newIEDB STATIC ${SOURCES})
 target_include_directories(newIEDB PUBLIC include third-part/roaring_bitmap third-part/sqlite third-part/cjson)

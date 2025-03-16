@@ -1,40 +1,54 @@
 #include "dbManager.h"
+#include "DBreader.h"
 #include "newDB.h"
-#include "vdbe_stmt.h"
+#include "vdbe_cursor.h"
 #include "test/test.h"
+#include "test/timer.h"
+// #include "test/test.h"
 using namespace iedb;
+char dbPath[] = "/dev/shm/IEDB_V3/test.db";
 char path[1024] = "/dev/shm/apple_stock.sql";
 char original_buffer[0x1000];
 char buffer[0x2000];
-int64 a = -1;
-uint64 b = 2;
-std::array<uint8,1024 * 1024> test1;
-char expr[] = "select (a + 2.5) * (b - 3) / (c % 5 + 1) + d * 1.2 - (a / (b + 1.0)) + (c * d) / (a + 1) from test;";
-std::string sql1 = "select * from test where id >= 5;";
-std::string sql =
-        "SELECT "
-        "reading_value * 1.05 + 10 - reading_value * 0.05 - 10 * adjusted_value, "
-        "reading_value * 2 + reading_value * 3 + reading_value * 4 * weighted_sum, "
-        "reading_value - (reading_value / 2) * 2 + (reading_value / 2) * 2 + value_check, "
-        "reading_value * 10 / 10  + value_identity "
-        "FROM sensor_data "
-        "WHERE "
-        "reading_value > 10 AND reading_value < 500 "
-        "GROUP BY id, device_id, sensor_type, reading_value, reading_time;";
-int main() {
+char sql[] = "select Low+High,Open from apple_stock where Open > 0.12  group by High + Low order by Low,Open;";
+char sql1[] = "select Low+High,Open from apple_stock where Open > 0.12  group by High + Low order by Low,Open,rowid;";
+sqlite3 *db;
+sqlite3_stmt *stmt;
 
-    auto sqls = test::get_sql_from_file(path);
+int main() {
+    auto p = IEDB_reader_malloc();
+    std::vector<uint8> record;
+    int index = 0;
+    assert(sqlite3_open(dbPath,&db) == SQLITE_OK);
+    // auto sqls = test::get_sql_from_file(path);
+    // for (auto & sql:sqls) {
+    // IEDB_execute_sql_without_reader(sql.c_str());
+    // sqlite3_exec(db,sql.c_str(),nullptr,nullptr,nullptr);
+    // }
+
+    IEDB_execute_query_sql(sql, p);
+    assert(sqlite3_prepare_v2(db,sql1,sizeof(sql1),&stmt,nullptr) == SQLITE_OK);
     auto time = new timer();
     time->start_timing();
-    for (auto & sql:sqls)
-        IEDB_execute_sql_without_reader(sql.c_str());
+    while (p->next() == status_ok) {
+        assert(sqlite3_step(stmt) == SQLITE_ROW);
+        auto p1 = p->get_column_double(0);
+        auto p2 = p->get_column_double(1);
+        auto p3 = sqlite3_column_double(stmt, 0);
+        auto p4 = sqlite3_column_double(stmt, 1);
+        assert(std::abs(p1 - p3) < 0.00001);
+        assert(std::abs(p2 - p4) < 0.00001);
+        index++;
+    }
+
     time->end_timing();
-    std::cout << "代码执行耗时: " << time->cost_time_for_us() << " 微秒" << std::endl;
-    delete time;
+    time->printf();
+    // delete time;
     // 以下是对sqlite3的示例代码
     // test::sqlite_test(sqls);
     // sqlite3 *db;
     // assert(test::run() == 0);
     // test::run();
+    IEDB_reader_free(p);
     return 0;
 }

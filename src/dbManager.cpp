@@ -5,6 +5,8 @@
 #include "os.h"
 #include "../third-part/cjson/cJSON.h"
 #include <filesystem>
+#include <iostream>
+
 namespace iedb
 {
     dbManager::dbTable::dbTable(std::vector<uint8>& data, std::unique_ptr<table>& _table, std::unique_ptr<btree>& tree):
@@ -70,9 +72,8 @@ namespace iedb
         auto dir_path = root_dir +"/"+ _table->get_name();
         auto data_path = dir_path + "/data";
         auto table_path = dir_path + "/table";
-        auto size = table::get_translate_need_buffer_size(*_table);
-        std::vector<uint8> data(size);
-        table::translate_to_buffer(*_table,data.data());
+        std::vector<uint8> data;
+        table::translate_to_buffer(*_table,data);
         auto fd = 0;
         //创建目录
         auto status = os::mkdir(dir_path.c_str());
@@ -128,6 +129,7 @@ namespace iedb
     {
         static char buffer[1024 * 1024];
         //读取配置文件到指定缓存
+        std::cout << "current work dir:" << std::filesystem::current_path().generic_string() << std::endl;
         int fd;
         auto status = os::open(config_file_name,os::open_mode_read,0,fd);
         assert(status == status_ok);
