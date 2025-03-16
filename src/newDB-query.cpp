@@ -140,7 +140,7 @@ static int execute_query(AST &ast, DBreader &reader) {
             exprs.emplace_back(vdbe_expr::generate(_table, node));
     }
     reader.swap(rows, exprs);
-    return status_ok;
+    return cursor->commit();
 }
 
 

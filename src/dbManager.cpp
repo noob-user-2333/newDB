@@ -20,12 +20,12 @@ namespace iedb
         root_dir = root_dir_node->valuestring;
     }
 
-    std::vector<std::string> dbManager::extract_dirs(const std::string& path)
+    std::vector<std::filesystem::directory_entry> dbManager::extract_dirs(const std::string& path)
     {
-        std::vector<std::string> dirs;
+        std::vector<std::filesystem::directory_entry> dirs;
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             if (entry.is_directory()) {
-                dirs.emplace_back(entry.path().string());
+                dirs.emplace_back(entry);
             }
         }
         return std::move(dirs);
@@ -122,7 +122,13 @@ namespace iedb
         {
             assert(os::mkdir(root_dir.c_str()) == status_ok);
         }
-
+        //扫描根目录下所有目录，确定存在哪些数据表
+        auto dirs = extract_dirs(root_dir);
+        for (auto& dir:dirs) {
+            auto p = open_table(dir.path().c_str());
+            if (p)
+                map[dir.path().filename().generic_string()] = std::move(p);
+        }
     }
 
     dbManager::dbManager()
@@ -150,20 +156,22 @@ namespace iedb
         static dbManager instance;
         return instance;
     }
-    int dbManager::get_dbTable(const std::string& table_name,dbTable*& out_table) const
+    int dbManager::get_dbTable(const std::string& table_name,dbTable*& out_table)
     {
-        auto it = map.find(table_name);
-        if (it == map.end())
+        auto&manager = dbManager::get_instance();
+        auto it = manager.map.find(table_name);
+        if (it == manager.map.end())
             return status_not_found;
         out_table = (it->second.get());
         return status_ok;
     }
     int dbManager::create_dbTable(std::unique_ptr<table>& _table)
     {
-        auto p  = create_table(root_dir,_table);
+        auto& manager = dbManager::get_instance();
+        auto p  = create_table(manager.root_dir,_table);
         if (p)
         {
-            map.emplace(p->get_name(),std::move(p));
+            manager.map.emplace(p->get_name(),std::move(p));
             return status_ok;
         }
         return status_error;

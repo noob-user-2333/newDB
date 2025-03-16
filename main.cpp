@@ -30,8 +30,8 @@ int main() {
     assert(sqlite3_prepare_v2(db,sql1,sizeof(sql1),&stmt,nullptr) == SQLITE_OK);
     auto time = new timer();
     time->start_timing();
-    while (p->next() == status_ok) {
-        assert(sqlite3_step(stmt) == SQLITE_ROW);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        assert(p->next() == status_ok);
         auto p1 = p->get_column_double(0);
         auto p2 = p->get_column_double(1);
         auto p3 = sqlite3_column_double(stmt, 0);
@@ -43,6 +43,7 @@ int main() {
 
     time->end_timing();
     time->printf();
+    std::cout << index << std::endl;
     // delete time;
     // 以下是对sqlite3的示例代码
     // test::sqlite_test(sqls);

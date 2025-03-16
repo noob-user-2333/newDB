@@ -5,6 +5,8 @@
 #ifndef INITIALIZER_H
 #define INITIALIZER_H
 
+#include <filesystem>
+
 #include "utility.h"
 #include "table.h"
 #include "btree.h"
@@ -29,19 +31,19 @@ namespace iedb
         std::string root_dir;
         std::unordered_map<std::string,std::unique_ptr<dbTable>> map;
 
-        static std::vector<std::string> extract_dirs(const std::string & path);
+        static std::vector<std::filesystem::directory_entry> extract_dirs(const std::string & path);
         static std::unique_ptr<dbTable> open_table(const std::string&dir_path);
         static std::unique_ptr<dbTable> create_table(const std::string&root_dir,std::unique_ptr<table> & _table);
         void extract_parameters(void * json_root_node);
         void initialize_file_system();
         dbManager();
 
+        static dbManager& get_instance();
     public:
         dbManager(const dbManager& init) = delete;
-        static dbManager& get_instance();
         constexpr const std::string& get_root_dir(){return root_dir;}
-        int get_dbTable(const std::string& table_name,dbTable*& out_table) const;
-        int create_dbTable(std::unique_ptr<table>& _table);
+        static int get_dbTable(const std::string& table_name,dbTable*& out_table);
+        static int create_dbTable(std::unique_ptr<table>& _table);
     };
 
 

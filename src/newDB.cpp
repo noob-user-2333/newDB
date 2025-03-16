@@ -30,7 +30,7 @@ static int create_sql_execute(iedb::AST &ast) {
         if (status != iedb::status_ok)
             return status;
     }
-    return iedb::vdbe_cursor::create_table(*_table);
+    return iedb::vdbe_cursor::create_table(_table);
 }
 
 static column_value token_to_column_value(token *t) {
