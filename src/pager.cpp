@@ -90,25 +90,27 @@ namespace iedb {
             out_page.reset();
             return status_out_of_range;
         }
-        auto p = std::make_unique<dbPage>(*this, page_no);
-        auto _status = os::read(fd, offset, p->get_data(), page_size);
-        if (_status != status_ok)
-            return _status;
+        auto& page = GetNewDbPage();
+        auto pageNo = page.get_page_no();
+        auto _status = os::read(fd, offset, page.get_data(), page_size);
+        assert(_status == status_ok);
         //仅当数据读取成功时放入缓存
-        auto &page = pages.emplace_back(std::move(p));
-        out_page = *page;
-        map.insert({page_no, page.get()});
+        map.erase(pageNo);
+        page.page_no = page_no;
+        out_page = page;
+        map.insert({page_no, &page});
         return status_ok;
     }
 
     int pager::get_new_page(dbPage_ref &out_page) {
         assert(status == pager_status::write_transaction);
-        auto p = std::make_unique<dbPage>(*this, page_count);
-        auto &page = pages.emplace_back(std::move(p));
+        auto& page= GetNewDbPage();
+        map.erase(page.page_no);
+        page.page_no = static_cast<int>(page_count);
         page_count++;
-        out_page = *page;
-        map.insert({page->get_page_no(), page.get()});
-        page->enable_write();
+        out_page = page;
+        map.insert({page.get_page_no(), &page});
+        page.enable_write();
         return status_ok;
     }
 
@@ -214,12 +216,7 @@ namespace iedb {
         return status_ok;
     }
 
-    void pager::release_buffer() {
-        assert(status == pager_status::normal);
-        map.clear();
-        writable_pages.clear();
-        pages.clear();
-    }
+
 
     int pager::WritePages() {
         assert(status == pager_status::write_transaction);
@@ -238,9 +235,34 @@ namespace iedb {
             assert(status == status_ok);
             if (status != status_ok)
                 return status;
+            page->writable = false;
         }
         writable_pages.clear();
         return status_ok;
     }
+    pager::dbPage& pager::GetNewDbPage() {
+        //首先检查缓存是否已满
+        if (pages.size() < max_cache_page) {
+            pages.emplace_front(*this,0);
+            return pages.front();
+        }
+        //如果所有缓存均已保存脏页则将日志提交后将数据写入文件
+        if (writable_pages.size() == pages.size()) {
+            j->commit_transaction();
+            WritePages();
+        }
+        //从后向前查找非脏页
+        auto count = pages.size();
+        auto index = 0;
+        for (auto it = pages.end();index < count;index++) {
+            --it;
+            if (it->writable == false) {
+                pages.splice(pages.begin(),pages,it);
+                return *pages.begin();
+            }
+        }
+        throw std::runtime_error("pager::GetNewDbPage(): pages are empty");
+    }
+
 
 }

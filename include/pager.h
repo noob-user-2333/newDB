@@ -27,7 +27,7 @@ namespace iedb
         public:
             friend class pager;
             ~dbPage() = default;
-            dbPage(dbPage&) = delete;
+            // dbPage(dbPage&) = delete;
             dbPage(pager& owner,int page_no);
             [[nodiscard]] int get_page_no() const;
             [[nodiscard]]void* get_data() const;
@@ -49,13 +49,14 @@ namespace iedb
         int64 page_count;
         pager_status status;
         //用于缓存页面并通过页号获取缓存的页面
-        std::list<std::unique_ptr<dbPage>> pages;
+        std::list<dbPage> pages;
         std::vector<dbPage*> writable_pages;
         std::unordered_map<int, dbPage*> map;
 
         int mark_page_writable(dbPage& page);
         pager(int fd,std::unique_ptr<journal>&j,int64 original_file_size);
         int WritePages();
+        dbPage& GetNewDbPage();
     public:
         ~pager();
         using dbPage_ref = std::optional<std::reference_wrapper<dbPage>>;
@@ -65,7 +66,6 @@ namespace iedb
         //用于数据页面管理
         int get_page(int page_no,dbPage_ref& out_page);
         int get_new_page(dbPage_ref& out_page);
-        void release_buffer();
         //用于写事务的管理
         int begin_write_transaction();
         int commit_phase_one();

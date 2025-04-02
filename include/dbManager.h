@@ -27,10 +27,10 @@ namespace iedb
             dbTable(std::vector<uint8>& data,std::unique_ptr<table>&_table,std::unique_ptr<btree>&tree);
             [[nodiscard]] const std::string& get_name() const{return _table->get_name();}
         };
-    private:
         std::string root_dir;
         std::unordered_map<std::string,std::unique_ptr<dbTable>> map;
 
+    private:
         static std::vector<std::filesystem::directory_entry> extract_dirs(const std::string & path);
         static std::unique_ptr<dbTable> open_table(const std::string&dir_path);
         static std::unique_ptr<dbTable> create_table(const std::string&root_dir,std::unique_ptr<table> & _table);
@@ -38,8 +38,8 @@ namespace iedb
         void initialize_file_system();
         dbManager();
 
-        static dbManager& get_instance();
     public:
+        static dbManager& get_instance();
         dbManager(const dbManager& init) = delete;
         constexpr const std::string& get_root_dir(){return root_dir;}
         static int get_dbTable(const std::string& table_name,dbTable*& out_table);

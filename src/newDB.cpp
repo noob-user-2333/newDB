@@ -124,7 +124,8 @@ int IEDB_execute_sql_without_reader(const char *sql) {
     auto ast = iedb::AST::parse(sql);
     if (ast == nullptr)
         return iedb::status_invalid_sql;
-    return IEDB_execute_not_select(*ast);
+    auto errorCode =  IEDB_execute_not_select(*ast);
+    return errorCode;
 }
 
 

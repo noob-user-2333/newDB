@@ -33,10 +33,7 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         test/function.cpp
         tools/tool.h
         tools/tools.cpp
-        #        test/test_pager.cpp
-#        test/test_btree_page.cpp
-#        test/test_btree.cpp
-#        test/test_btree_internal_page.cpp
+
 )
 target_link_libraries(newDB ${GTEST_LIBRARIES} pthread xxhash)
 

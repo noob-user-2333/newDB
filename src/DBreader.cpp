@@ -13,8 +13,12 @@ int DBreader::next() {
     if (it == rows.end())
         return iedb::status_out_of_range;
     values.clear();
-    for (const auto &expr: exprs) {
-        values.emplace_back(expr->run(it->values));
+    if (exprs.empty()) {
+        values = it->values;
+    }else {
+        for (const auto &expr: exprs) {
+            values.emplace_back(expr->run(it->values));
+        }
     }
     return iedb::status_ok;
 }
@@ -25,8 +29,12 @@ int DBreader::prev() {
         return iedb::status_out_of_range;
     --it;
     values.clear();
-    for (const auto &expr: exprs) {
-        values.emplace_back(expr->run(it->values));
+    if (exprs.empty()) {
+        values = it->values;
+    }else {
+        for (const auto &expr: exprs) {
+            values.emplace_back(expr->run(it->values));
+        }
     }
     return iedb::status_ok;
 }
