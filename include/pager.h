@@ -55,6 +55,7 @@ namespace iedb
 
         int mark_page_writable(dbPage& page);
         pager(int fd,std::unique_ptr<journal>&j,int64 original_file_size);
+        int WritePages();
     public:
         ~pager();
         using dbPage_ref = std::optional<std::reference_wrapper<dbPage>>;

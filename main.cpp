@@ -5,8 +5,12 @@
 #include "test/test.h"
 #include "test/timer.h"
 // #include "test/test.h"
+/*
+ *  TODO:完成工具用于从sqlite导入数据到IEDB
+ *  TODO：完成工具用于分别从sqlite和IEDB读取数据并比较结果是否一致
+ */
 using namespace iedb;
-char dbPath[] = "/dev/shm/IEDB_V3/test.db";
+char dbPath[] = "/dev/shm/test.db";
 char path[1024] = "/dev/shm/apple_stock.sql";
 char original_buffer[0x1000];
 char buffer[0x2000];
@@ -16,40 +20,27 @@ sqlite3 *db;
 sqlite3_stmt *stmt;
 
 int main() {
-    auto p = IEDB_reader_malloc();
     std::vector<uint8> record;
-    int index = 0;
+    DBreader *p;
     assert(sqlite3_open(dbPath,&db) == SQLITE_OK);
-    // auto sqls = test::get_sql_from_file(path);
-    // for (auto & sql:sqls) {
-    // IEDB_execute_sql_without_reader(sql.c_str());
-    // sqlite3_exec(db,sql.c_str(),nullptr,nullptr,nullptr);
-    // }
-
-    IEDB_execute_query_sql(sql, p);
-    assert(sqlite3_prepare_v2(db,sql1,sizeof(sql1),&stmt,nullptr) == SQLITE_OK);
     auto time = new timer();
     time->start_timing();
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        assert(p->next() == status_ok);
-        auto p1 = p->get_column_double(0);
-        auto p2 = p->get_column_double(1);
-        auto p3 = sqlite3_column_double(stmt, 0);
-        auto p4 = sqlite3_column_double(stmt, 1);
-        assert(std::abs(p1 - p3) < 0.00001);
-        assert(std::abs(p2 - p4) < 0.00001);
-        index++;
-    }
+    auto sqls = test::get_sql_from_file(path);
+    auto insertCount = sqls.size() - 1;
 
-    time->end_timing();
-    time->printf();
-    std::cout << index << std::endl;
-    // delete time;
-    // 以下是对sqlite3的示例代码
-    // test::sqlite_test(sqls);
-    // sqlite3 *db;
-    // assert(test::run() == 0);
-    // test::run();
+    sqlite3_exec(db,"PRAGMA journal_mode = PERSIST;",nullptr,nullptr,nullptr);
+    sqlite3_exec(db,sqls[0].c_str(),nullptr,nullptr,nullptr);
+    // IEDB_execute_sql_without_reader(sqls[0].c_str());
+    for (auto count = 0; count < 5;count++) {
+        for (auto times = 1;times < sqls.size();times++) {
+            sqlite3_exec(db,sqls[times].c_str(),nullptr,nullptr,nullptr);
+            // IEDB_execute_sql_without_reader(sqls[times].c_str());
+        }
+        printf("have %ld records,insert into %ld records\n",insertCount * count,insertCount);
+        time->end_timing();
+        time->printf();
+    }
+    delete time;
     IEDB_reader_free(p);
     return 0;
 }

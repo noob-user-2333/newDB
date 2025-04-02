@@ -51,7 +51,8 @@ namespace iedb
     {
         assert(tree->enable_write() == status_ok);
         assert(tree->insert(key,{(void*)buffer,(uint64)size}) == status_ok);
-        return tree->commit();
+        assert(tree->commit() == status_ok);
+        return status_ok;
     }
     void vdbe_cursor::delete_record(uint64 key)
     {

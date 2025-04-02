@@ -74,13 +74,46 @@ static int insert_sql_execute(iedb::AST &ast) {
     cursor->row_to_record(row, buffer);
     return cursor->insert(key, buffer.data(), static_cast<int>(buffer.size()));
 }
-
+static int delete_sql_execute(iedb::AST &ast) {
+    auto cursor = vdbe_cursor::open(ast.target_table->to_string());
+    if (!cursor)
+        return iedb::status_not_found;
+    cursor->begin_write();
+    auto &_table = cursor->get_table();
+    uint64_t key;
+    std::vector<uint8_t> record;
+    table::row row;
+    std::vector<std::unique_ptr<vdbe_expr> > exprs;
+    std::vector<table::row> rows;
+    //表达式树转化为后缀表达式
+    for (auto node = ast.where; node; node = node->next)
+        exprs.emplace_back(vdbe_expr::generate(_table, node));
+    //遍历数据以进行筛选
+    while (cursor->next() == iedb::status_ok) {
+        cursor->get_record(row.key, record);
+        cursor->record_to_row(record, row.values);
+        // 若符合查询条件，则将数据添加到reader中
+        auto condition_met = true;
+        for (const auto &expr: exprs) {
+            auto v = expr->run(row.values);
+            if (vdbe_expr::is_zero(v)) {
+                condition_met = false;
+                break;
+            }
+        }
+        if (condition_met)
+            cursor->delete_record(row.key);
+    }
+    return cursor->commit();
+}
 static int IEDB_execute_not_select(AST &ast) {
     switch (ast.type) {
         case iedb::token_type::create:
             return create_sql_execute(ast);
         case iedb::token_type::insert:
             return insert_sql_execute(ast);
+        case iedb::token_type::Delete:
+            return delete_sql_execute(ast);
         default:
             return iedb::status_invalid_sql;
     }
@@ -94,9 +127,7 @@ int IEDB_execute_sql_without_reader(const char *sql) {
     return IEDB_execute_not_select(*ast);
 }
 
-DBreader *IEDB_reader_malloc() {
-    return new DBreader();
-}
+
 
 void IEDB_reader_free(const DBreader *reader) {
     delete reader;

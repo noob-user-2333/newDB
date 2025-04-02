@@ -4,6 +4,7 @@
 #include <gtest/gtest-death-test.h>
 #include <gtest/gtest.h>
 
+#include "DBreader.h"
 #include "test.h"
 
 namespace iedb
@@ -94,5 +95,22 @@ namespace iedb
         testing::InitGoogleTest();
         return RUN_ALL_TESTS();
     }
+
+    void test::QueryVerfy(const std::string &sql, sqlite3 *db, bool (*VerifyCheck)(sqlite3_stmt *, DBreader *reader)) {
+        sqlite3_stmt *stmt;
+        DBreader *reader;
+        assert(sqlite3_prepare_v2(db,sql.c_str(), sizeof(sql.size()), &stmt, nullptr) == SQLITE_OK);
+        assert(IEDB_execute_query_sql(sql.c_str(),&reader) == status_ok);
+        auto column = 0;
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            reader->next();
+            auto same = VerifyCheck(stmt, reader);
+            if (same == false) {
+                fprintf(stderr,"查询第%d行数据时，两者出现差异\n",column);
+                throw std::runtime_error("something wrong for VerifyCheck");
+            }
+        }
+    }
+
 
 }

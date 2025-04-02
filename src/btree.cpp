@@ -2,7 +2,7 @@
 // Created by user on 25-2-19.
 //
 #include "../include/btree.h"
-#define CHECK_ERROR(x) {_status = x;if (_status != status_ok) return _status;}
+#define CHECK_ERROR(x) {_status = x;assert(_status == status_ok);if (_status != status_ok) return _status;}
 
 namespace iedb
 {

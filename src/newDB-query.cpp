@@ -144,9 +144,10 @@ static int execute_query(AST &ast, DBreader &reader) {
 }
 
 
-int IEDB_execute_query_sql(const char *sql, DBreader *reader) {
+int IEDB_execute_query_sql(const char *sql, DBreader **reader) {
     auto ast = iedb::AST::parse(sql);
     if (ast == nullptr && ast->type != iedb::token_type::select)
         return iedb::status_invalid_sql;
-    return execute_query(*ast, *reader);
+    *reader = new DBreader();
+    return execute_query(*ast, **reader);
 }

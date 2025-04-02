@@ -17,6 +17,8 @@ namespace iedb
     {
     public:
         static constexpr int random_buffer_size = page_size * 16;
+
+        static void QueryVerfy(const std::string& sql,sqlite3*db,bool (*VerifyCheck)(sqlite3_stmt*,DBreader * reader));
         static void get_random(void *buffer,int64 size);
         static void* get_random(const char*random_file_path = nullptr);
         static void read_file(const char *filename,int offset,int len,void*buffer);

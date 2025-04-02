@@ -31,6 +31,8 @@ add_executable(newDB  ${SOURCES} ${INCLUDE} main.cpp
         #test
         test/test.h
         test/function.cpp
+        tools/tool.h
+        tools/tools.cpp
         #        test/test_pager.cpp
 #        test/test_btree_page.cpp
 #        test/test_btree.cpp

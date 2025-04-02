@@ -10,11 +10,10 @@ extern "C"{
     struct DBreader;
     typedef struct DBreader DBreader;
     int IEDB_execute_sql_without_reader(const char *sql);
-    int IEDB_execute_query_sql(const char *sql,DBreader *reader);
+    int IEDB_execute_query_sql(const char *sql,DBreader ** reader);
 
 
 
-    DBreader* IEDB_reader_malloc();
     void IEDB_reader_free(const DBreader* reader);
     int IEDB_reader_next(DBreader* reader);
     int IEDB_reader_get_column_bytes(DBreader* reader,int column);
